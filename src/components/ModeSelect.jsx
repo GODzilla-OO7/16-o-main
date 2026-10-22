@@ -11,7 +11,7 @@ function formatCount(n) {
 }
 
 export default function ModeSelect({
-  onSelect, onH2H, onDailyChallenge, onWeeklyCup, onFriendsCup, onLiveCup,
+  onSelect, onSeason, onH2H, onDailyChallenge, onWeeklyCup, onFriendsCup, onLiveCup,
   user, onSignIn, onGoogleSignIn, onAccount, onMedals,
   newAwards = [], streak = 0, streakBonus = 0,
 }) {
@@ -448,6 +448,28 @@ export default function ModeSelect({
             </button>
           ))}
         </div>
+
+        {/* ── Season (career) mode ─────────────────────────────────────── */}
+        {onSeason && (
+          <button
+            onClick={onSeason}
+            data-testid="season-mode"
+            style={{
+              width: '100%', maxWidth: 960, padding: '1rem 1.5rem',
+              background: 'linear-gradient(90deg, rgba(217,119,6,0.22), rgba(8,8,14,0.72))',
+              border: '1.5px solid rgba(245,158,11,0.45)', borderRadius: '0.875rem',
+              color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.85rem',
+              backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: '1.9rem', lineHeight: 1 }}>📅</span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontWeight: 900, color: '#f59e0b', fontSize: '1rem' }}>SEASON MODE <span style={{ fontSize: '0.65rem', background: '#d97706', color: '#1a0a00', borderRadius: 999, padding: '0.1rem 0.4rem', marginLeft: 4 }}>NEW</span></span>
+              <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)' }}>IPL career: play 14 matches one at a time, win the deciding overs yourself.</span>
+            </span>
+            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#f59e0b' }}>PLAY ›</span>
+          </button>
+        )}
 
         {/* ── Multiplayer banner ─────────────────────────────────────────── */}
         <button

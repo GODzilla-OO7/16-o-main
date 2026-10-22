@@ -38,6 +38,7 @@ const SharedLeague = lazyScreen(() => import('./components/SharedLeague.jsx'))
 const LiveCup = lazyScreen(() => import('./components/LiveCup.jsx'))
 const FriendsCup = lazyScreen(() => import('./components/FriendsCup.jsx'))
 const WeeklyCup = lazyScreen(() => import('./components/WeeklyCup.jsx'))
+const SeasonHub = lazyScreen(() => import('./season/SeasonHub.jsx'))
 
 const ROLE_FULL_LABEL = {
   'opener': 'Opener',
@@ -205,6 +206,8 @@ export default function App() {
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [mode, setMode]             = useState(null)
+  const seasonModeRef = useRef(false)              // true while drafting a Season-mode squad
+  const [seasonDraft, setSeasonDraft] = useState(null) // { team, manager, settings } for a new season
   const [phase, setPhase]           = useState('menu')
   const [settings, setSettings]     = useState(null)
   const [manager, setManager]       = useState(null)
@@ -296,6 +299,12 @@ export default function App() {
   // Manager selected → start simulation (or save to live cup if in cup draft mode)
   function handleManagerSelect(mgr) {
     setManager(mgr)
+    if (seasonModeRef.current) {
+      seasonModeRef.current = false
+      setSeasonDraft({ team, manager: mgr, settings })
+      setPhase('season')
+      return
+    }
     if (liveCupCtx?.draftMode && liveCupDraftDoneRef.current) {
       // Live cup: save team to Supabase via callback, then return to lobby
       const cb = liveCupDraftDoneRef.current
@@ -444,6 +453,7 @@ export default function App() {
     const returnToWeeklyCup  = !!weeklyCupCtx?.weekKey
     const returnToLiveCup    = !!liveCupCtx?.roomId
 
+    seasonModeRef.current = false
     setMode(null); setPhase('menu')
     setTeam([]); setDraftedIds(new Set())
     setSettings(null); setManager(null)
@@ -924,7 +934,13 @@ export default function App() {
   if (phase === 'menu')     return (
     <>
       <ModeSelect
-        onSelect={handleModeSelect}
+        onSelect={(m) => { seasonModeRef.current = false; handleModeSelect(m) }}
+        onSeason={async () => {
+          const { loadSeason } = await import('./season/store.js')
+          const saved = await loadSeason(user)
+          if (saved) { setSeasonDraft(null); setPhase('season') }
+          else { seasonModeRef.current = true; handleModeSelect('ipl') }
+        }}
         onH2H={() => setShowH2H(true)}
         onDailyChallenge={() => setShowDailyChallenge(true)}
         onWeeklyCup={() => setShowWeeklyCup(true)}
@@ -1172,6 +1188,20 @@ export default function App() {
       </div>
     )
   }
+
+  if (phase === 'season') return (
+    <div style={{ minHeight: '100vh', position: 'relative' }}>
+      <div className="page-overlay" />
+      <SeasonHub
+        key={seasonDraft ? 'new' : 'saved'}
+        user={user}
+        draft={seasonDraft}
+        onHome={() => { setSeasonDraft(null); handlePlayAgain() }}
+        onNewSeason={() => { setSeasonDraft(null); seasonModeRef.current = true; setMode('ipl'); setPhase('settings') }}
+      />
+      {globalOverlays}
+    </div>
+  )
 
   if (phase === 'simulate') return (
     <div style={{ minHeight: '100vh', paddingTop: activeChallenge ? BANNER_H : 0, position: 'relative' }}>
