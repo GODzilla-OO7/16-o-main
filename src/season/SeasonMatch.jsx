@@ -102,7 +102,7 @@ export default function SeasonMatch({ season, onDone, onQuit, Moment, onCelebrat
           : <span style={{ width: 60 }} />}
       </div>
 
-      <div className="sn-card">
+      {(stage === 'sim' || stage === 'result' || !Moment) && <div className="sn-card">
         <div className="sn-muted">{USER_TEAM} vs {fx.opp} <span className="sn-pill">{match.oppSeason}</span></div>
         <Score label={match.inn1.batTeam} inn={match.inn1} upto={stage === 'sim' && cur?.inn === 0 ? cur : null} hidden={false} />
         {(stage !== 'sim' || cur?.inn === 1) && <Score label={match.inn2.batTeam} inn={match.inn2} upto={stage === 'sim' ? cur : null} target={match.inn2.target} />}
@@ -111,7 +111,7 @@ export default function SeasonMatch({ season, onDone, onQuit, Moment, onCelebrat
             {match.inn2.batTeam} need {match.inn2.target - match.inn2.runs} off {match.inn2.maxBalls - match.inn2.balls}
           </div>
         )}
-      </div>
+      </div>}
 
       {stage === 'sim' && (
         <div className="sn-card sn-feed" ref={feedRef}>

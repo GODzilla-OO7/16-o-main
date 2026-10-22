@@ -101,7 +101,7 @@ export function chooseBowler(inn, forceIdx = null) {
   return Math.random() < 0.7 ? top[0].i : top[Math.floor(Math.random() * top.length)].i
 }
 
-function startOverIfNeeded(inn, forceBowler) {
+export function startOverIfNeeded(inn, forceBowler) {
   if (inn.curBowler == null) {
     inn.curBowler = chooseBowler(inn, forceBowler)
     inn.overs.push({ bowler: inn.bowl[inn.curBowler].name, bowlerIdx: inn.curBowler, balls: [], runs: 0, wkts: 0, sixesBy: {} })
@@ -271,7 +271,7 @@ export function prepareMatch({ userXI, userName, oppName, oppXI, ratingType, mod
 // Super Over: 6 balls, 2 wickets. Team batting second in the match bats first.
 export function prepareSuperOver(match, userXI, oppXI, mods) {
   const pickBat = xi => [...xi].sort((a, b) => (b.batting ?? 0) - (a.batting ?? 0)).slice(0, 3)
-  const pickBowl = xi => [...xi].sort((a, b) => (b.bowling ?? 0) - (a.bowling ?? 0)).slice(0, 1)
+  const pickBowl = xi => [...xi].sort((a, b) => (b.bowling ?? 0) - (a.bowling ?? 0)).slice(0, 4)
   const userFirst = match.userBatsFirst === false
   const mk = (bat, target) => bat === 'user'
     ? newInnings({ batTeam: match.userName, bowlTeam: match.oppName, batXI: pickBat(userXI), bowlXI: pickBowl(oppXI), maxBalls: 6, maxWkts: 2, target, ratingType: match.ratingType, mods })
