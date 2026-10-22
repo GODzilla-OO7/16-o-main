@@ -10,49 +10,6 @@ export function getAudioContext() {
   return ctx
 }
 
-// ── Spin reel sound ────────────────────────────────────────────────────────────
-
-export function playSpinSound() {
-  try {
-    const ac = getAudioContext()
-    if (ac.state === 'suspended') ac.resume()
-
-    const now    = ac.currentTime
-    const clicks = 28
-    const dur    = 0.72
-
-    for (let i = 0; i < clicks; i++) {
-      // Clicks start slow then rapidly bunch up — like a wheel gaining speed
-      const t = now + dur * Math.pow(i / clicks, 0.55)
-
-      // Very short impulsive noise burst (8 ms) — mechanical click character
-      const bufLen = Math.ceil(ac.sampleRate * 0.008)
-      const buf    = ac.createBuffer(1, bufLen, ac.sampleRate)
-      const data   = buf.getChannelData(0)
-      for (let j = 0; j < bufLen; j++) {
-        data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufLen * 0.18))
-      }
-
-      const src = ac.createBufferSource()
-      src.buffer = buf
-
-      // Bandpass filter → plastic/metal click tone
-      const bpf           = ac.createBiquadFilter()
-      bpf.type            = 'bandpass'
-      bpf.frequency.value = 1400 + (i % 4) * 180  // slight variation per click
-      bpf.Q.value         = 2.5
-
-      const g       = ac.createGain()
-      g.gain.value  = 0.52
-
-      src.connect(bpf); bpf.connect(g); g.connect(ac.destination)
-      src.start(t)
-    }
-  } catch (_) {
-    // Silently fail if audio not available
-  }
-}
-
 // ── Scroller tick — one sharp click per team shown during spin ────────────────
 
 export function playTickClick() {

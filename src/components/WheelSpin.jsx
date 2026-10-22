@@ -193,7 +193,6 @@ export default function WheelSpin({
   useEffect(() => () => clearTimeout(cycleRef.current), [])
 
   function startSpin() {
-    // playSpinSound removed — tick clicks now fire per-team in tick()
     setPhase('spinning')
     setLandedEntry(null)
 

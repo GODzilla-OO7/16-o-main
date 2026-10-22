@@ -1,11 +1,6 @@
-import { MODE_CONFIG, getPrimeRatings } from '../data/players.js'
+import { MODE_CONFIG } from '../data/players.js'
 
 // ─── Team Strength ─────────────────────────────────────────────────────────
-
-function primeOvr(p, mode) {
-  const map = getPrimeRatings(mode)
-  return Math.min(99, map[p.name] ?? p.overall)
-}
 
 export function calcTeamStrength(team, manager, mode, ratingType = 'overall') {
   if (!team || team.length === 0) return 50

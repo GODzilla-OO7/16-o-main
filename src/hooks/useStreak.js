@@ -110,14 +110,3 @@ export function getStreakBonus(streak) {
   if (streak >= 3)  return 5
   return 0
 }
-
-/**
- * The next milestone streak count from the current streak.
- * Returns null if already at max.
- */
-export function nextMilestone(streak) {
-  if (streak < 3)  return 3
-  if (streak < 7)  return 7
-  if (streak < 14) return 14
-  return null
-}

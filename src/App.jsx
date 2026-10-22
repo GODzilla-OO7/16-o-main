@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component } from 'react'
+import { useState, useEffect, useRef, Component, lazy, Suspense } from 'react'
 import { MODE_CONFIG, POSITIONS } from './data/players.js'
 import ModeSelect from './components/ModeSelect.jsx'
 import DraftSettings from './components/DraftSettings.jsx'
@@ -10,16 +10,8 @@ import MatchSimulator from './components/MatchSimulator.jsx'
 import Results from './components/Results.jsx'
 import ProfileModal from './components/ProfileModal.jsx'
 import AuthModal from './components/AuthModal.jsx'
-import UserProfile from './components/UserProfile.jsx'
 import SquadComposer from './components/SquadComposer.jsx'
 import RetentionScreen from './components/RetentionScreen.jsx'
-import DailyChallenge from './components/DailyChallenge.jsx'
-import H2HLobby from './components/H2HLobby.jsx'
-import H2HDraft from './components/H2HDraft.jsx'
-import SharedLeague from './components/SharedLeague.jsx'
-import LiveCup from './components/LiveCup.jsx'
-import FriendsCup from './components/FriendsCup.jsx'
-import WeeklyCup from './components/WeeklyCup.jsx'
 import { STARTING_BUDGET } from './components/WheelSpin.jsx'
 import { DEFAULT_COMP } from './components/CupSettingsScreen.jsx'
 import MusicPlayer from './components/MusicPlayer.jsx'
@@ -30,6 +22,22 @@ import { useAuth, saveGameResult, saveAwards, fetchProfile, incrementTotalPlays,
 import { generateTournament } from './utils/sharedTournament.js'
 import { getSupabase } from './lib/supabase.js'
 import { resolveShortUrl } from './lib/shortUrl.js'
+
+// Screens most players never open load on demand, so the home screen starts faster.
+function lazyScreen(load) {
+  const Screen = lazy(load)
+  return function LazyScreen(props) {
+    return <Suspense fallback={null}><Screen {...props} /></Suspense>
+  }
+}
+const UserProfile = lazyScreen(() => import('./components/UserProfile.jsx'))
+const DailyChallenge = lazyScreen(() => import('./components/DailyChallenge.jsx'))
+const H2HLobby = lazyScreen(() => import('./components/H2HLobby.jsx'))
+const H2HDraft = lazyScreen(() => import('./components/H2HDraft.jsx'))
+const SharedLeague = lazyScreen(() => import('./components/SharedLeague.jsx'))
+const LiveCup = lazyScreen(() => import('./components/LiveCup.jsx'))
+const FriendsCup = lazyScreen(() => import('./components/FriendsCup.jsx'))
+const WeeklyCup = lazyScreen(() => import('./components/WeeklyCup.jsx'))
 
 const ROLE_FULL_LABEL = {
   'opener': 'Opener',

@@ -7813,9 +7813,6 @@ export function getPrimeRatings(mode) {
   return PRIME_RATINGS_IPL
 }
 
-// Backward-compat alias (IPL is the default)
-export const PRIME_RATINGS = PRIME_RATINGS_IPL
-
 /** Apply prime ratings (career peak) to a team array for simulation. Returns a new array, does not mutate.
  *  Uses the per-competition prime map — mode determines which competition's peak is used.
  */
