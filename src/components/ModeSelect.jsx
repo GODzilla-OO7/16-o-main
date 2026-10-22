@@ -35,6 +35,10 @@ export default function ModeSelect({
 
   const RED = '#C8102E'
   const RED_HOV = '#a50d24'
+  // Per-mode colour identities
+  const IPL_CLR  = { bg: 'rgba(180,110,0,0.18)',    border: 'rgba(245,158,11,0.45)',  borderHov: 'rgba(245,158,11,0.75)',  glowHov: 'rgba(245,158,11,0.15)',  btn: '#d97706', btnHov: '#b45309', title: '#fbbf24', sub: 'rgba(251,191,36,0.6)' }
+  const ODI_CLR  = { bg: 'rgba(14,60,160,0.20)',    border: 'rgba(59,130,246,0.40)',  borderHov: 'rgba(59,130,246,0.75)',  glowHov: 'rgba(59,130,246,0.15)',  btn: '#1d4ed8', btnHov: '#1e40af', title: '#93c5fd', sub: 'rgba(147,197,253,0.6)' }
+  const T20_CLR  = { bg: 'rgba(80,20,160,0.20)',    border: 'rgba(139,92,246,0.40)',  borderHov: 'rgba(139,92,246,0.75)', glowHov: 'rgba(139,92,246,0.15)',  btn: '#7c3aed', btnHov: '#6d28d9', title: '#c4b5fd', sub: 'rgba(196,181,253,0.6)' }
 
   return (
     <div style={{
@@ -138,7 +142,7 @@ export default function ModeSelect({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
         }}>
           <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>
-            Log in to save medals &amp; stats — progress is lost when you close the tab.
+            Log in to save medals & stats — progress is lost when you close the tab.
           </div>
           <button
             onClick={onGoogleSignIn}
@@ -238,11 +242,11 @@ export default function ModeSelect({
           marginBottom: '1.25rem',
         }}>
 
-          {/* IPL — active */}
+          {/* IPL — amber/gold identity */}
           <div
             style={{
-              background: 'rgba(8,8,14,0.78)',
-              border: '1.5px solid rgba(255,255,255,0.18)',
+              background: 'rgba(18,10,0,0.82)',
+              border: '1.5px solid rgba(245,158,11,0.38)',
               borderRadius: '1rem',
               padding: isMobile ? '0.75rem 1.25rem' : '1.6rem 1.25rem 1.2rem',
               backdropFilter: 'blur(14px)',
@@ -255,22 +259,19 @@ export default function ModeSelect({
               cursor: 'default',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(200,16,46,0.55)'
-              e.currentTarget.style.boxShadow = '0 0 32px rgba(200,16,46,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(245,158,11,0.70)'
+              e.currentTarget.style.boxShadow = '0 0 32px rgba(245,158,11,0.10)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+              e.currentTarget.style.borderColor = 'rgba(245,158,11,0.38)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <span style={{ fontSize: isMobile ? '1.75rem' : '2.6rem', lineHeight: 1, marginBottom: isMobile ? 0 : '0.2rem', flexShrink: 0 }}>🏆</span>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'center', gap: '0.3rem' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff', textAlign: isMobile ? 'left' : 'center' }}>IPL</div>
-              <div style={{
-                fontSize: '0.65rem', color: 'rgba(255,255,255,0.58)',
-                textAlign: isMobile ? 'left' : 'center', lineHeight: 1.55,
-              }}>
-                Draft with full player stats visible — make informed picks across all IPL eras.
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#f59e0b', textAlign: isMobile ? 'left' : 'center' }}>IPL</div>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.58)', textAlign: isMobile ? 'left' : 'center', lineHeight: 1.55 }}>
+                Draft with full player stats across all IPL eras.
               </div>
             </div>
             <button
@@ -280,25 +281,25 @@ export default function ModeSelect({
                 width: isMobile ? 'auto' : '100%',
                 flexShrink: 0,
                 padding: isMobile ? '0.5rem 0.9rem' : '0.55rem 0',
-                background: RED, border: 'none',
+                background: '#d97706', border: 'none',
                 borderRadius: '999px',
-                color: '#fff', fontSize: '0.78rem', fontWeight: 800,
+                color: '#1a0a00', fontSize: '0.78rem', fontWeight: 800,
                 cursor: 'pointer', letterSpacing: '0.05em',
                 transition: 'background 0.15s, transform 0.1s',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = RED_HOV; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = RED; e.currentTarget.style.transform = 'translateY(0)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#b45309'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#d97706'; e.currentTarget.style.transform = 'translateY(0)' }}
             >
               PLAY IPL
             </button>
           </div>
 
-          {/* ODI WC — active */}
+          {/* ODI WC — blue identity */}
           <div
             style={{
-              background: 'rgba(8,8,14,0.78)',
-              border: '1.5px solid rgba(255,255,255,0.18)',
+              background: 'rgba(5,10,28,0.82)',
+              border: '1.5px solid rgba(59,130,246,0.38)',
               borderRadius: '1rem',
               padding: isMobile ? '0.75rem 1.25rem' : '1.6rem 1.25rem 1.2rem',
               backdropFilter: 'blur(14px)',
@@ -311,17 +312,17 @@ export default function ModeSelect({
               cursor: 'default',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(200,16,46,0.55)'
-              e.currentTarget.style.boxShadow = '0 0 32px rgba(200,16,46,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(59,130,246,0.70)'
+              e.currentTarget.style.boxShadow = '0 0 32px rgba(59,130,246,0.10)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+              e.currentTarget.style.borderColor = 'rgba(59,130,246,0.38)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <span style={{ fontSize: isMobile ? '1.75rem' : '2.6rem', lineHeight: 1, marginBottom: isMobile ? 0 : '0.2rem', flexShrink: 0 }}>🌍</span>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'center', gap: '0.3rem' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff', textAlign: isMobile ? 'left' : 'center' }}>ODI WC</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#93c5fd', textAlign: isMobile ? 'left' : 'center' }}>ODI WC</div>
               <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.58)', textAlign: isMobile ? 'left' : 'center', lineHeight: 1.55 }}>
                 Build the greatest ODI World Cup XI of all time.
               </div>
@@ -333,25 +334,25 @@ export default function ModeSelect({
                 width: isMobile ? 'auto' : '100%',
                 flexShrink: 0,
                 padding: isMobile ? '0.5rem 0.9rem' : '0.55rem 0',
-                background: RED, border: 'none',
+                background: '#1d4ed8', border: 'none',
                 borderRadius: '999px',
                 color: '#fff', fontSize: '0.78rem', fontWeight: 800,
                 cursor: 'pointer', letterSpacing: '0.05em',
                 transition: 'background 0.15s, transform 0.1s',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = RED_HOV; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = RED; e.currentTarget.style.transform = 'translateY(0)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#1e40af'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#1d4ed8'; e.currentTarget.style.transform = 'translateY(0)' }}
             >
               PLAY ODI WC
             </button>
           </div>
 
-          {/* T20 WC — active */}
+          {/* T20 WC — purple identity */}
           <div
             style={{
-              background: 'rgba(8,8,14,0.78)',
-              border: '1.5px solid rgba(255,255,255,0.18)',
+              background: 'rgba(10,5,22,0.82)',
+              border: '1.5px solid rgba(139,92,246,0.38)',
               borderRadius: '1rem',
               padding: isMobile ? '0.75rem 1.25rem' : '1.6rem 1.25rem 1.2rem',
               backdropFilter: 'blur(14px)',
@@ -364,17 +365,17 @@ export default function ModeSelect({
               cursor: 'default',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(200,16,46,0.55)'
-              e.currentTarget.style.boxShadow = '0 0 32px rgba(200,16,46,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(139,92,246,0.70)'
+              e.currentTarget.style.boxShadow = '0 0 32px rgba(139,92,246,0.10)'
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+              e.currentTarget.style.borderColor = 'rgba(139,92,246,0.38)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <span style={{ fontSize: isMobile ? '1.75rem' : '2.6rem', lineHeight: 1, marginBottom: isMobile ? 0 : '0.2rem', flexShrink: 0 }}>⚡</span>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'center', gap: '0.3rem' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fff', textAlign: isMobile ? 'left' : 'center' }}>T20 WC</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#c4b5fd', textAlign: isMobile ? 'left' : 'center' }}>T20 WC</div>
               <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.58)', textAlign: isMobile ? 'left' : 'center', lineHeight: 1.55 }}>
                 Pick your nation's finest T20 internationals across every edition.
               </div>
@@ -386,15 +387,15 @@ export default function ModeSelect({
                 width: isMobile ? 'auto' : '100%',
                 flexShrink: 0,
                 padding: isMobile ? '0.5rem 0.9rem' : '0.55rem 0',
-                background: RED, border: 'none',
+                background: '#7c3aed', border: 'none',
                 borderRadius: '999px',
                 color: '#fff', fontSize: '0.78rem', fontWeight: 800,
                 cursor: 'pointer', letterSpacing: '0.05em',
                 transition: 'background 0.15s, transform 0.1s',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = RED_HOV; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = RED; e.currentTarget.style.transform = 'translateY(0)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#6d28d9'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.transform = 'translateY(0)' }}
             >
               PLAY T20 WC
             </button>

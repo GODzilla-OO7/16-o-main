@@ -50,7 +50,7 @@ function getHookLine(currentLabel, bestLabel, isNewBest) {
 
 // ─── Share card generator (Canvas) — 38-0.app style ──────────────────────────
 
-function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, modeLabel, matchResults, potm, topScorer, topScorerRuns, topWicketTaker, topWicketTakerWkts, bestWinStreak, stageReached, iplOutcome, team, myStr, iconPlayer, awards = [], pastSeasons = [], impactSubPlayer = null }) {
+function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, modeLabel, mode, matchResults, potm, topScorer, topScorerRuns, topWicketTaker, topWicketTakerWkts, bestWinStreak, stageReached, iplOutcome, team, myStr, iconPlayer, awards = [], pastSeasons = [], impactSubPlayer = null }) {
   const MEDAL_ROWS = awards.length > 0 ? Math.ceil(awards.length / 3) : 0
   const MEDALS_H   = awards.length > 0 ? (MEDAL_ROWS * 28 + 30) : 86  // 86 = 2-row placeholder height, prevents footer overlap when no medals
   const W = 630
@@ -68,7 +68,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
   const _psRowCount  = _psSeasons.length === 0 ? 0 : _psSeasons.length <= 3 ? 1 : 2
   const PAST_H       = _psSeasons.length > 0 ? (42 + _psRowCount * 90) : 0
   const H            = Math.max(_footY + PAST_H + 74, 700)
-  const DPR = window.devicePixelRatio || 2
+  const DPR = Math.max(window.devicePixelRatio || 1, 2)
   const canvas = document.createElement('canvas')
   canvas.width  = W * DPR
   canvas.height = H * DPR
@@ -88,7 +88,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
   function scaleDisp(v) { return Math.max(1, Math.min(99, Math.round(v * 0.88 + 8))) }
 
   // ── Theme: golden when champion, dark otherwise ───────────────────────────
-  const isChampionTheme = iplOutcome === 'champion' || stageReached === 'Champions'
+  const isChampionTheme = iplOutcome === 'champion' || stageReached === 'Champion'
   const ACCENT   = isChampionTheme ? '#b45309' : '#C8102E'
   const ACCENT2  = isChampionTheme ? '#f59e0b' : '#60a5fa'
   const BG_BASE  = isChampionTheme ? '#1a1000' : '#060d1a'
@@ -182,7 +182,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
   ctx.letterSpacing = '0px'
 
   // Matches + stage
-  const isChampion = stageReached === 'Champions' || iplOutcome === 'champion'
+  const isChampion = stageReached === 'Champion' || iplOutcome === 'champion'
   const isRunnerUp = stageReached === 'Runner-up' || iplOutcome === 'runner-up'
   const stageStr = isChampion ? `${total} matches · 1st place`
     : isRunnerUp ? `${total} matches · 2nd place`
@@ -263,14 +263,14 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     ctx.strokeStyle = 'rgba(200,16,46,0.35)'
     ctx.lineWidth = 0.5
     ctx.stroke()
-    ctx.font = '700 8.5px system-ui, sans-serif'
+    ctx.font = '700 10px system-ui, sans-serif'
     ctx.fillStyle = tagClr
     ctx.textAlign = 'center'
     ctx.fillText(tag.slice(0, 4), x + tagW / 2, y + 19)
 
     // Name (last name + initial)
     ctx.textAlign = 'left'
-    ctx.font = '600 12.5px system-ui, sans-serif'
+    ctx.font = '600 14px system-ui, sans-serif'
     ctx.fillStyle = '#f1f5f9'
     const parts = p.name.trim().split(/\s+/)
     let displayName = parts.length > 1
@@ -285,7 +285,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     // Rating — right-aligned in column
     const ratingX = (col === 0 ? DIV_X : W - PAD_X) - 7
     ctx.textAlign = 'right'
-    ctx.font = '800 13px system-ui, sans-serif'
+    ctx.font = '800 14px system-ui, sans-serif'
     ctx.fillStyle = rating >= 88 ? '#60a5fa' : rating >= 78 ? '#ffffff' : 'rgba(255,255,255,0.55)'
     ctx.fillText(String(rating), ratingX, y + 20)
     ctx.textAlign = 'left'
@@ -315,14 +315,14 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     ctx.strokeStyle = 'rgba(200,16,46,0.35)'
     ctx.lineWidth = 0.5
     ctx.stroke()
-    ctx.font = '700 8.5px system-ui, sans-serif'
+    ctx.font = '700 10px system-ui, sans-serif'
     ctx.fillStyle = tagClr
     ctx.textAlign = 'center'
     ctx.fillText(tag.slice(0, 4), x + tagW / 2, y + 19)
 
     // Name + (Impact Sub) — abbreviated to fit
     ctx.textAlign = 'left'
-    ctx.font = '600 11px system-ui, sans-serif'
+    ctx.font = '600 14px system-ui, sans-serif'
     ctx.fillStyle = '#f1f5f9'
     const parts = impactSubPlayer.name.trim().split(/\s+/)
     let displayName = parts.length > 1
@@ -335,13 +335,14 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
       displayName = displayName.slice(0, -2) + '…'
     }
     ctx.fillText(displayName, x + tagW + 7, y + 20)
-    ctx.font = '500 9.5px system-ui, sans-serif'
+    const nameW = ctx.measureText(displayName).width  // capture at 14px before switching font
+    ctx.font = '500 11px system-ui, sans-serif'
     ctx.fillStyle = 'rgba(148,163,184,1.0)'
-    ctx.fillText(subLabel, x + tagW + 7 + ctx.measureText(displayName).width + 4, y + 20)
+    ctx.fillText(subLabel, x + tagW + 7 + nameW + 4, y + 20)
 
     // Rating
     ctx.textAlign = 'right'
-    ctx.font = '800 13px system-ui, sans-serif'
+    ctx.font = '800 14px system-ui, sans-serif'
     ctx.fillStyle = rating >= 88 ? '#60a5fa' : rating >= 78 ? '#ffffff' : 'rgba(255,255,255,0.55)'
     ctx.fillText(String(rating), ratingX2, y + 20)
     ctx.textAlign = 'left'
@@ -355,7 +356,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
   ctx.beginPath(); ctx.moveTo(PAD_X, STATS_Y); ctx.lineTo(W - PAD_X, STATS_Y); ctx.stroke()
 
   // Section label
-  ctx.font = '700 11px system-ui, sans-serif'
+  ctx.font = '700 12px system-ui, sans-serif'
   ctx.fillStyle = isChampionTheme ? 'rgba(245,158,11,0.7)' : 'rgba(147,197,253,0.7)'
   ctx.textAlign = 'left'
   ctx.letterSpacing = '1.5px'
@@ -389,7 +390,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     ctx.fillText(stat || '', RX + 48, y + 34)
     // Cap label on right
     ctx.textAlign = 'right'
-    ctx.font = '700 10px system-ui, sans-serif'
+    ctx.font = '700 11px system-ui, sans-serif'
     ctx.fillStyle = capBg
     ctx.letterSpacing = '0.5px'
     ctx.fillText(capLabel, W - PAD_X - 10, y + ROW_H2 / 2 + 4)
@@ -405,13 +406,15 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
 
   let capY = STATS_Y + 22
   if (topScorer) {
-    const scorerStat = topScorerRuns ? `${topScorerRuns} runs · Orange Cap 🧢` : 'Orange Cap 🧢'
-    drawCapRow(capY, topScorer, scorerStat, 'ORANGE CAP', '#f97316', 'rgba(249,115,22,0.3)', '#fff', initials(topScorer))
+    const isIPL = mode === 'ipl'
+    const scorerStat = topScorerRuns ? `${topScorerRuns} runs · ${isIPL ? 'Orange Cap 🧢' : 'Top Scorer ⭐'}` : (isIPL ? 'Orange Cap 🧢' : 'Top Scorer ⭐')
+    drawCapRow(capY, topScorer, scorerStat, isIPL ? 'ORANGE CAP' : 'TOP SCORER', '#f97316', 'rgba(249,115,22,0.3)', '#fff', initials(topScorer))
     capY += 54
   }
   if (topWicketTaker) {
-    const wktStat = topWicketTakerWkts ? `${topWicketTakerWkts} wickets · Purple Cap` : 'Purple Cap'
-    drawCapRow(capY, topWicketTaker, wktStat, 'PURPLE CAP', '#a855f7', 'rgba(168,85,247,0.3)', '#fff', initials(topWicketTaker))
+    const isIPL = mode === 'ipl'
+    const wktStat = topWicketTakerWkts ? `${topWicketTakerWkts} wickets · ${isIPL ? 'Purple Cap' : 'Top Wicket Taker 🎯'}` : (isIPL ? 'Purple Cap' : 'Top Wicket Taker 🎯')
+    drawCapRow(capY, topWicketTaker, wktStat, isIPL ? 'PURPLE CAP' : 'TOP WICKET TAKER', '#a855f7', 'rgba(168,85,247,0.3)', '#fff', initials(topWicketTaker))
     capY += 54
   }
 
@@ -433,7 +436,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     ctx.beginPath(); ctx.moveTo(28, MY); ctx.lineTo(W - 28, MY); ctx.stroke()
 
     ctx.textAlign = 'left'
-    ctx.font = '700 10px system-ui, sans-serif'
+    ctx.font = '700 12px system-ui, sans-serif'
     ctx.fillStyle = 'rgba(245,158,11,0.8)'
     ctx.letterSpacing = '1.5px'
     ctx.fillText('🏅 MEDALS', 28, MY + 13)
@@ -448,7 +451,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
       ctx.strokeStyle = 'rgba(255,255,255,0.1)'
       ctx.lineWidth = 1
       ctx.stroke()
-      ctx.font = '700 9px system-ui, sans-serif'
+      ctx.font = '700 11px system-ui, sans-serif'
       ctx.fillStyle = 'rgba(148,163,184,0.4)'
       ctx.textAlign = 'left'
       ctx.fillText('No medals won', 28 + 8, MY + 20 + 14)
@@ -472,7 +475,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
         ctx.textAlign = 'left'
         ctx.fillText(award.icon, cx + 5, cy + 14)
 
-        ctx.font = '700 9px system-ui, sans-serif'
+        ctx.font = '700 11px system-ui, sans-serif'
         ctx.fillStyle = '#fde68a'
         let name = award.name
         while (ctx.measureText(name).width > CHIP_W - 30 && name.length > 2) {
@@ -495,7 +498,7 @@ function generateShareCard({ wins, losses, total, ratingLabel, ratingColor, mode
     ctx.beginPath(); ctx.moveTo(PAD_X, PS_Y); ctx.lineTo(W - PAD_X, PS_Y); ctx.stroke()
 
     ctx.textAlign = 'left'
-    ctx.font = '700 11px system-ui, sans-serif'
+    ctx.font = '700 12px system-ui, sans-serif'
     ctx.fillStyle = 'rgba(148,163,184,0.65)'
     ctx.letterSpacing = '1.5px'
     ctx.fillText('PAST SEASONS', PAD_X, PS_Y + 16)
@@ -762,7 +765,7 @@ const ROLE_COLOR = {
   'pace-bowler': '#ef4444', 'spin-bowler': '#a855f7',
 }
 
-function getRating(wins, losses, total, perfect, targetWins, iplOutcome) {
+function getRating(wins, losses, total, perfect, targetWins, iplOutcome, stageReached) {
   if (!total) return { label: 'COMPLETE', color: '#94a3b8', emoji: '\u{1F3CF}', desc: 'Season complete.' }
   if (iplOutcome === 'champion')     return { label: 'IPL CHAMPIONS', color: '#f59e0b', emoji: '\u{1F3C6}', desc: 'You lifted the trophy. An all-time great team.' }
   if (iplOutcome === 'runner-up')    return { label: 'RUNNERS-UP',    color: '#94a3b8', emoji: '\u{1F948}', desc: 'So close — you made the Final and pushed hard.' }
@@ -772,6 +775,11 @@ function getRating(wins, losses, total, perfect, targetWins, iplOutcome) {
     if (pct >= 0.60) return { label: 'SOLID SEASON',  color: '#94a3b8', emoji: '\u{1F4CB}', desc: 'Good league form but just missed the top 4.' }
     return { label: 'TOUGH SEASON', color: '#ef4444', emoji: '\u{1F62C}', desc: 'A difficult campaign — couldn\'t break into playoffs.' }
   }
+  if (stageReached === 'Champion')   return { label: 'WORLD CHAMPIONS', color: '#f59e0b', emoji: '\u{1F3C6}', desc: 'You lifted the trophy. World Cup winners.' }
+  if (stageReached === 'Runner-up')  return { label: 'RUNNERS-UP',      color: '#94a3b8', emoji: '\u{1F948}', desc: 'So close — you made the Final and pushed hard.' }
+  if (stageReached === 'Semi-Final') return { label: 'SEMI-FINAL EXIT', color: '#C8102E', emoji: '⚡',    desc: 'You reached the semis but couldn\'t make the Final.' }
+  if (stageReached === 'Super 8')    return { label: 'SUPER 8 EXIT',    color: '#94a3b8', emoji: '\u{1F4CB}', desc: 'Made it through the group stage but fell in the Super 8s.' }
+  if (stageReached === 'Group Stage') return { label: 'GROUP STAGE EXIT', color: '#ef4444', emoji: '\u{1F62C}', desc: 'A tough group stage — couldn\'t make it through.' }
   if (perfect) return { label: 'LEGENDARY', color: '#f59e0b', emoji: '\u{1F3C6}', desc: `You achieved the impossible — ${targetWins}-0!` }
   if (losses === 0) return { label: 'DOMINANT', color: '#C8102E', emoji: '\u{1F451}', desc: 'Unbeaten all season — extraordinary.' }
   const pct = wins / total
@@ -781,13 +789,14 @@ function getRating(wins, losses, total, perfect, targetWins, iplOutcome) {
   return { label: 'TOUGH RUN', color: '#ef4444', emoji: '\u{1F62C}', desc: 'Even legends have bad seasons.' }
 }
 
-export default function Results({ team, mode, manager, summary, matchResults, onPlayAgain, onNextSeason, seasonNumber = 1, newAwards = [], prevSeasons = [], challengerResult = null, h2hContext = null, user = null, onGoogleSignIn, onShowAuth, restoredAfterAuth = false }) {
+export default function Results({ team, mode, manager, summary, matchResults, onPlayAgain, onNextSeason, seasonNumber = 1, newAwards = [], prevSeasons = [], challengerResult = null, h2hContext = null, user = null, onGoogleSignIn, onShowAuth, restoredAfterAuth = false, cupCtx = null }) {
   const [tab, setTab] = useState('overview') // overview | playerstats | matches
   const [h2hOppStats, setH2hOppStats] = useState(null) // { wins, losses, oppName }
   const [waSharing2, setWaSharing2]   = useState(false)
   const h2hResultWritten = useRef(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [resultJustSaved, setResultJustSaved] = useState(false)
+  const [cupStandings, setCupStandings] = useState(null) // [{playerId, displayName, played, wins, losses, pts}]
 
   // Show "saved" confirmation when user logs in while on results screen
   const prevUserRef2 = useRef(user)
@@ -840,6 +849,56 @@ export default function Results({ team, mode, manager, summary, matchResults, on
       } catch { /* ignore — best effort */ }
     })
   }, [h2hOppStats])
+
+  // Fetch cup standings when coming from a friends cup or live cup
+  useEffect(() => {
+    if (!cupCtx?.roomId) return
+    import('../lib/supabase.js').then(({ getSupabase }) => getSupabase()).then(async sb => {
+      if (!sb) return
+      if (cupCtx.type === 'friends') {
+        const { data } = await sb.from('friends_cup_results')
+          .select('player_id,display_name,wins,losses')
+          .eq('room_id', cupCtx.roomId)
+        if (!data) return
+        const rows = data.map(r => ({
+          playerId: r.player_id,
+          displayName: r.display_name,
+          played: (r.wins ?? 0) + (r.losses ?? 0),
+          wins: r.wins ?? 0,
+          losses: r.losses ?? 0,
+          pts: (r.wins ?? 0) * 2,
+        })).sort((a, b) => b.pts - a.pts || b.wins - a.wins || a.losses - b.losses)
+        setCupStandings(rows)
+      } else if (cupCtx.type === 'live') {
+        // Aggregate per-match rows
+        const { data } = await sb.from('live_cup_results')
+          .select('player_id,won')
+          .eq('room_id', cupCtx.roomId)
+        // Get display names from players table
+        const { data: players } = await sb.from('live_cup_players')
+          .select('player_id,display_name')
+          .eq('room_id', cupCtx.roomId)
+        if (!data) return
+        const nameMap = {}
+        for (const p of (players ?? [])) nameMap[p.player_id] = p.display_name
+        const map = {}
+        for (const r of data) {
+          if (!map[r.player_id]) map[r.player_id] = { wins: 0, losses: 0 }
+          if (r.won) map[r.player_id].wins++
+          else map[r.player_id].losses++
+        }
+        const rows = Object.entries(map).map(([pid, stats]) => ({
+          playerId: pid,
+          displayName: nameMap[pid] ?? pid,
+          played: stats.wins + stats.losses,
+          wins: stats.wins,
+          losses: stats.losses,
+          pts: stats.wins * 2,
+        })).sort((a, b) => b.pts - a.pts || b.wins - a.wins || a.losses - b.losses)
+        setCupStandings(rows)
+      }
+    })
+  }, [cupCtx?.roomId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Null-safe destructure
   const cfg     = MODE_CONFIG[mode] || {}
@@ -970,7 +1029,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
 
   const predicted    = getPredictedRank(myStr, mode)
   const perfWriteup = getPerformanceWriteup(wins, losses, total, iplOutcome, iplPosition, predicted.pos, potm, stageReached, mode)
-  const rating = getRating(wins, losses, total, perfect, cfg.targetWins, iplOutcome)
+  const rating = getRating(wins, losses, total, perfect, cfg.targetWins, iplOutcome, stageReached)
 
   const buildShareUrl = () => {
     try {
@@ -1072,6 +1131,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
       ratingLabel: rating.label,
       ratingColor: rating.color,
       modeLabel:   cfg.label,
+      mode,
       matchResults,
       potm,
       topScorer:          topScorers[0]?.name    ?? null,
@@ -1252,7 +1312,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
           <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.35rem', marginBottom: '0.75rem' }}>
             {cfg.label} · {dispTotal} match{dispTotal !== 1 ? 'es' : ''}{madePlayoffs ? ' incl. playoffs' : ''}{didntQualify ? ' · Didn\'t make playoffs' : ''}
           </div>
-          <div style={{ fontSize: '1rem', color: '#94a3b8', lineHeight: 1.6, marginBottom: iplOutcome === 'eliminated' ? '0.5rem' : '1.5rem' }}>
+          <div style={{ fontSize: '1rem', color: '#94a3b8', lineHeight: 1.6, marginBottom: (iplOutcome === 'eliminated' || (stageReached && stageReached !== 'Champion' && stageReached !== 'Runner-up')) ? '0.5rem' : '1.5rem' }}>
             {rating.desc}
           </div>
           {iplOutcome === 'eliminated' && (() => {
@@ -1287,6 +1347,52 @@ export default function Results({ team, mode, manager, summary, matchResults, on
               redLine = `The batting never found a reliable anchor to build around.`
             else
               redLine = `One more win in the knockouts would have changed everything.`
+
+            return (
+              <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                {greenLine && <div style={{ fontSize: '0.82rem', color: '#4ade80', fontWeight: 600 }}>✦ {greenLine}</div>}
+                {redLine   && <div style={{ fontSize: '0.82rem', color: '#f87171', fontWeight: 600 }}>✦ {redLine}</div>}
+              </div>
+            )
+          })()}
+          {stageReached && stageReached !== 'Champion' && stageReached !== 'Runner-up' && (() => {
+            const topBat  = topScorers[0]
+            const topBowl = topWicketTakers[0]
+            const winPct  = total > 0 ? wins / total : 0
+
+            // Positive line
+            let greenLine = null
+            if (stageReached === 'Semi-Final')
+              greenLine = topBat?.runs >= 300
+                ? `${topBat.name} was outstanding — ${topBat.runs} runs in the tournament.`
+                : topBowl?.wickets >= 10
+                ? `${topBowl.name} was exceptional with the ball — ${topBowl.wickets} wickets.`
+                : `You made it to the semi-finals — further than most dared to hope.`
+            else if (stageReached === 'Super 8')
+              greenLine = winPct >= 0.6
+                ? `Strong through the groups — ${wins} wins from ${total} games was impressive.`
+                : topBat
+                ? `${topBat.name} gave this side something to build around — ${topBat.runs} runs.`
+                : `Getting out of the group stage is an achievement in itself.`
+            else
+              greenLine = topBat
+                ? `${topBat.name} gave everything — ${topBat.runs} runs in a tough tournament.`
+                : winPct >= 0.4
+                ? `The team showed fight — ${wins} wins despite a difficult group.`
+                : null
+
+            // Negative line
+            let redLine = null
+            if (stageReached === 'Semi-Final')
+              redLine = `One more win would have made history. The Final just slipped away.`
+            else if (stageReached === 'Super 8')
+              redLine = topBowl && topBowl.wickets < 8
+                ? `The bowling couldn't maintain the consistency needed in the knockout phase.`
+                : `Couldn't find the wins in the Super 8s when the pressure peaked.`
+            else
+              redLine = winPct < 0.3
+                ? `A brutal group stage — the results never came together when it mattered.`
+                : `So close to advancing — the margins were fine, the results weren't.`
 
             return (
               <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
@@ -1461,7 +1567,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
                     border: '1px solid rgba(249,115,22,0.4)',
                     borderRadius: '0.875rem', padding: '0.875rem 0.75rem', textAlign: 'center',
                   }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>🟠 Orange Cap</div>
+                    <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>{mode === 'ipl' ? '🟠 Orange Cap' : '⭐ Top Scorer'}</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2 }}>{topScorers[0].name}</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f97316', marginTop: '0.15rem' }}>
                       {topScorers[0].runs} <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600 }}>runs</span>
@@ -1475,7 +1581,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
                     border: '1px solid rgba(168,85,247,0.4)',
                     borderRadius: '0.875rem', padding: '0.875rem 0.75rem', textAlign: 'center',
                   }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>🟣 Purple Cap</div>
+                    <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>{mode === 'ipl' ? '🟣 Purple Cap' : '🎯 Top Wicket Taker'}</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2 }}>{topWicketTakers[0].name}</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7', marginTop: '0.15rem' }}>
                       {topWicketTakers[0].wickets} <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600 }}>wkts</span>
@@ -1701,11 +1807,9 @@ export default function Results({ team, mode, manager, summary, matchResults, on
             <button
               onClick={onPlayAgain}
               style={{
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
-                padding: '0.8rem 1.4rem',
-                background: 'transparent',
-                color: '#64748b', border: '1px solid var(--border)', borderRadius: '0.625rem',
-                fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer',
+                background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E',
+                borderRadius: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700,
+                padding: '0.3rem 0.65rem', letterSpacing: '0.02em',
               }}
             >
               🏠 Home
@@ -1787,6 +1891,57 @@ export default function Results({ team, mode, manager, summary, matchResults, on
             >
               📣 {waSharing2 ? 'Shortening…' : 'Share Multiplayer Result on WhatsApp'}
             </button>
+          </div>
+        )}
+
+        {/* ── Cup Standings (Friends Cup / Live Cup) ── */}
+        {cupCtx && cupStandings && cupStandings.length > 0 && (
+          <div style={{
+            marginTop: '1.25rem',
+            padding: '1.1rem 1.25rem',
+            background: 'linear-gradient(135deg, rgba(200,16,46,0.07), rgba(200,16,46,0.03))',
+            border: '1.5px solid rgba(200,16,46,0.3)',
+            borderRadius: '1rem',
+            animation: 'fade-in-up 0.4s ease 0.15s both',
+          }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#C8102E', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.75rem' }}>
+              {cupCtx.type === 'friends' ? '👥 Friends Cup Standings' : '⚡ Live Cup Standings'}
+            </div>
+            {/* Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 32px 32px 32px 42px', gap: '0.2rem', padding: '0 0.5rem 0.3rem', fontSize: '0.58rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div>#</div><div>Player</div>
+              <div style={{ textAlign: 'center' }}>P</div>
+              <div style={{ textAlign: 'center' }}>W</div>
+              <div style={{ textAlign: 'center' }}>L</div>
+              <div style={{ textAlign: 'center' }}>Pts</div>
+            </div>
+            {cupStandings.slice(0, 8).map((p, idx) => {
+              const isMe = p.playerId === cupCtx.playerId
+              return (
+                <div key={p.playerId} style={{
+                  display: 'grid', gridTemplateColumns: '24px 1fr 32px 32px 32px 42px', gap: '0.2rem',
+                  alignItems: 'center', padding: '0.35rem 0.5rem',
+                  background: isMe ? 'rgba(200,16,46,0.1)' : idx === 0 ? 'rgba(245,158,11,0.06)' : 'transparent',
+                  border: `1px solid ${isMe ? 'rgba(200,16,46,0.3)' : 'transparent'}`,
+                  borderRadius: '0.4rem', marginBottom: '0.15rem',
+                  fontSize: '0.75rem',
+                }}>
+                  <div style={{ fontWeight: 800, color: idx === 0 ? '#f59e0b' : '#64748b', textAlign: 'center' }}>{idx + 1}</div>
+                  <div style={{ fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.displayName}{isMe ? ' ★' : ''}
+                  </div>
+                  <div style={{ textAlign: 'center', color: '#64748b' }}>{p.played}</div>
+                  <div style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>{p.wins}</div>
+                  <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{p.losses}</div>
+                  <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 900 }}>{p.pts}</div>
+                </div>
+              )
+            })}
+            <div style={{ marginTop: '0.625rem', textAlign: 'center' }}>
+              <button onClick={onPlayAgain} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#C8102E', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                View full standings →
+              </button>
+            </div>
           </div>
         )}
 
@@ -1885,6 +2040,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
           onPlayAgain={onPlayAgain}
           onNextSeason={onNextSeason}
           seasonNumber={seasonNumber}
+          mode={mode}
         />
 
         {/* ── Season Highlights ─────────────────────────────── */}
@@ -2069,7 +2225,7 @@ export default function Results({ team, mode, manager, summary, matchResults, on
 
 // ─── Best Finish Hook ─────────────────────────────────────────────────────────
 
-function BestFinishHook({ wins, losses, iplOutcome, stageReached, onPlayAgain, onNextSeason, seasonNumber = 1 }) {
+function BestFinishHook({ wins, losses, iplOutcome, stageReached, onPlayAgain, onNextSeason, seasonNumber = 1, mode = 'ipl' }) {
   const profile  = loadProfile()
   const history  = profile.history ?? []
 
@@ -2120,10 +2276,53 @@ function BestFinishHook({ wins, losses, iplOutcome, stageReached, onPlayAgain, o
         {isNewBest && <span style={{ display: 'block', fontSize: '1.5rem', marginBottom: '0.25rem' }}>🔥</span>}
         {hookLine}
       </div>
-      {/* Season N+1 — the main hook CTA */}
-      {onNextSeason && (
+      {/* Season N+1 — the main hook CTA (IPL only) */}
+      {onNextSeason ? (
+        <>
+          <button
+            onClick={onNextSeason}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#0a0f1a',
+              border: 'none',
+              borderRadius: '0.75rem',
+              fontSize: '1.05rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              letterSpacing: '0.02em',
+              marginBottom: '0.625rem',
+              boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            {mode === 'ipl' ? `🏆 Season ${seasonNumber + 1} — Retain & Rebuild →` : `🏏 Season ${seasonNumber + 1} — New Campaign →`}
+          </button>
+          <button
+            onClick={onPlayAgain}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              background: 'transparent',
+              color: '#64748b',
+              border: '1px solid var(--border)',
+              borderRadius: '0.625rem',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            🏠 Start Fresh
+          </button>
+        </>
+      ) : (
+        /* WC modes — just nudge to play again */
         <button
-          onClick={onNextSeason}
+          onClick={onPlayAgain}
           style={{
             width: '100%',
             padding: '1rem',
@@ -2135,33 +2334,14 @@ function BestFinishHook({ wins, losses, iplOutcome, stageReached, onPlayAgain, o
             fontWeight: 900,
             cursor: 'pointer',
             letterSpacing: '0.02em',
-            marginBottom: '0.625rem',
             boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
         >
-          🏆 Season {seasonNumber + 1} — Retain &amp; Rebuild →
+          🏏 Play Again →
         </button>
       )}
-      <button
-        onClick={onPlayAgain}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          background: 'transparent',
-          color: '#64748b',
-          border: '1px solid var(--border)',
-          borderRadius: '0.625rem',
-          fontSize: '0.88rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-        }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-      >
-        🏠 Start Fresh
-      </button>
     </div>
   )
 }
@@ -2181,12 +2361,12 @@ function SeasonHighlights({ topScorers, topWicketTakers, potm, iplPosition, pred
         {/* Top Batter */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.875rem', padding: '0.875rem 0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>🏏</div>
-          <div style={{ fontSize: '0.55rem', color: '#C8102E', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Top Scorer</div>
+          <div style={{ fontSize: '0.58rem', color: '#C8102E', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Top Scorer</div>
           {topBat ? (
             <>
               <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2, marginBottom: '0.25rem' }}>{topBat.name}</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#C8102E' }}>{topBat.runs}</div>
-              <div style={{ fontSize: '0.55rem', color: '#64748b' }}>runs</div>
+              <div style={{ fontSize: '0.58rem', color: '#64748b' }}>runs</div>
             </>
           ) : <div style={{ fontSize: '0.7rem', color: 'var(--border)' }}>—</div>}
         </div>
@@ -2194,12 +2374,12 @@ function SeasonHighlights({ topScorers, topWicketTakers, potm, iplPosition, pred
         {/* Top Bowler */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.875rem', padding: '0.875rem 0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>🎯</div>
-          <div style={{ fontSize: '0.55rem', color: '#a855f7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Top Bowler</div>
+          <div style={{ fontSize: '0.58rem', color: '#a855f7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Top Bowler</div>
           {topBowl ? (
             <>
               <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2, marginBottom: '0.25rem' }}>{topBowl.name}</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7' }}>{topBowl.wickets}</div>
-              <div style={{ fontSize: '0.55rem', color: '#64748b' }}>wickets</div>
+              <div style={{ fontSize: '0.58rem', color: '#64748b' }}>wickets</div>
             </>
           ) : <div style={{ fontSize: '0.7rem', color: 'var(--border)' }}>—</div>}
         </div>
@@ -2207,11 +2387,11 @@ function SeasonHighlights({ topScorers, topWicketTakers, potm, iplPosition, pred
         {/* Best Player / POTM */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.875rem', padding: '0.875rem 0.75rem', textAlign: 'center' }}>
           <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>🏅</div>
-          <div style={{ fontSize: '0.55rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Best Player</div>
+          <div style={{ fontSize: '0.58rem', color: '#f59e0b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>Best Player</div>
           {potm ? (
             <>
               <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1.2 }}>{potm}</div>
-              <div style={{ fontSize: '0.55rem', color: '#f59e0b', marginTop: '0.25rem', fontWeight: 700 }}>Player of Tournament</div>
+              <div style={{ fontSize: '0.58rem', color: '#f59e0b', marginTop: '0.25rem', fontWeight: 700 }}>Player of Tournament</div>
             </>
           ) : <div style={{ fontSize: '0.7rem', color: 'var(--border)' }}>—</div>}
         </div>

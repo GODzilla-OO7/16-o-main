@@ -198,7 +198,7 @@ export default function DailyChallenge({ user, onClose, onPlay }) {
               {/* Scoring */}
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#060818', borderRadius: '0.5rem', fontSize: '0.72rem', color: '#475569' }}>
                 <div style={{ fontWeight: 700, color: '#94a3b8', marginBottom: '0.25rem' }}>Scoring</div>
-                +100 pts per win &nbsp;·&nbsp; −10 pts per loss &nbsp;·&nbsp; +500 pts for perfect season
+                +100 pts per win  ·  −10 pts per loss  ·  +500 pts for perfect season
               </div>
             </div>
 

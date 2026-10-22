@@ -114,6 +114,20 @@ function getPositionNeeds(team, composition) {
   return needs
 }
 
+// Cup-mode mandatory minimums: ≥1 WK, ≥1 opener, ≥1 bowler — enforced even when freePositions=true
+function getCupMinimumNeeds(team) {
+  const remaining = 11 - team.length
+  const needs = []
+  const hasWK     = team.some(p => p.role === 'wicket-keeper')
+  const hasOpener = team.some(p => p.role === 'opener')
+  const hasBowler = team.some(p => p.role === 'pace-bowler' || p.role === 'spin-bowler')
+  const unmet = (!hasWK ? 1 : 0) + (!hasOpener ? 1 : 0) + (!hasBowler ? 1 : 0)
+  if (!hasWK)     needs.push({ role: 'wicket-keeper', label: 'WK',    must: remaining <= unmet })
+  if (!hasOpener) needs.push({ role: 'opener',        label: 'Opener', must: remaining <= unmet })
+  if (!hasBowler) needs.push({ role: 'bowler',        label: 'Bowler', must: remaining <= unmet })
+  return needs
+}
+
 // Is a player's role already full per the composition?
 function isRoleFull(player, team, composition) {
   if (!composition) return false
@@ -161,11 +175,15 @@ export default function WheelSpin({
   const hardMode            = settings.hardMode
   const ratingType          = settings.ratingType || 'season'
   const freePositions       = settings.freePositions ?? false
+  const inCupDraft          = settings.inCupDraft ?? false
   const overseasLimitEnabled = settings.overseasLimit ?? true
 
-  // Position needs — skipped entirely when freePositions is ON
-  const needs    = freePositions ? [] : getPositionNeeds(team, composition)
-  const mustPick = freePositions ? null : (needs.find(n => n.must) || null)
+  // Position needs — full composition enforcement unless freePositions.
+  // In cup draft mode, even with freePositions=true, enforce the 3 mandatory minimums (WK/opener/bowler).
+  const needs    = !freePositions ? getPositionNeeds(team, composition)
+                 : inCupDraft     ? getCupMinimumNeeds(team)
+                 : []
+  const mustPick = needs.find(n => n.must) || null
 
   // IPL overseas rule — only enforced when overseasLimit is ON
   const isIPLMode            = mode === 'ipl'
@@ -187,8 +205,10 @@ export default function WheelSpin({
     //   • not overseas-blocked (IPL: max 4 overseas)
 
     const draftedNameSet  = new Set(team.map(p => p.name))
-    const currentNeeds    = freePositions ? [] : getPositionNeeds(team, composition)
-    const currentMust     = freePositions ? null : (currentNeeds.find(n => n.must) || null)
+    const currentNeeds    = !freePositions ? getPositionNeeds(team, composition)
+                          : inCupDraft     ? getCupMinimumNeeds(team)
+                          : []
+    const currentMust     = currentNeeds.find(n => n.must) || null
     const overseasInTeamNow = isIPLMode ? team.filter(p => isOverseas(p)).length : 0
     const overseasFull    = isIPLMode && overseasLimitEnabled && overseasInTeamNow >= 4
 
@@ -604,7 +624,7 @@ function SpinPhase({ phase, cycleEntry, slotIndex, totalSlots, needs, mustPick, 
         style={{
           padding: '0.875rem 2.75rem',
           background: isSpinning ? 'transparent' : '#C8102E',
-          color: isSpinning ? '#64748b' : 'var(--bg)',
+          color: isSpinning ? '#64748b' : '#fff',
           border: isSpinning ? '1px solid var(--border)' : 'none',
           borderRadius: '0.75rem', fontSize: '0.95rem', fontWeight: 800,
           cursor: isSpinning ? 'default' : 'pointer', minWidth: 180,
@@ -648,24 +668,24 @@ function SelectPhase({ entry, players, allDrafted, compositionUnlocked, budgetEx
               onClick={onRetryBidding}
               style={{
                 padding: '0.875rem', background: '#C8102E',
-                color: 'var(--bg)', border: 'none', borderRadius: '0.625rem',
+                color: '#fff', border: 'none', borderRadius: '0.625rem',
                 fontSize: '0.9rem', fontWeight: 800, cursor: 'pointer',
               }}
             >
               🔄 Start team pick from scratch
             </button>
             <div style={{ fontSize: '0.65rem', color: '#475569', margin: '0.1rem 0' }}>
-              Keeps your tournament &amp; mode — resets squad &amp; budget
+              Keeps your tournament & mode — resets squad & budget
             </div>
             <button
               onClick={onRetryFromBeginning}
               style={{
-                padding: '0.75rem', background: 'transparent',
-                color: '#94a3b8', border: '1px solid var(--border)', borderRadius: '0.625rem',
-                fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer',
+                background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E',
+                borderRadius: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700,
+                padding: '0.3rem 0.65rem', letterSpacing: '0.02em',
               }}
             >
-              🏠 Go to home page
+              🏠 Home
             </button>
             <div style={{ fontSize: '0.65rem', color: '#475569', margin: '0.1rem 0' }}>
               Back to the beginning
@@ -738,7 +758,9 @@ function SelectPhase({ entry, players, allDrafted, compositionUnlocked, budgetEx
             : mustPick
             ? `⚠ Must pick a ${mustPick.label} — others shown below`
             : hardMode ? '🔒 Hard Mode'
-            : `${players.filter(p => p._eligible && !p._budgetBlocked).length} affordable · ${ratingType === 'prime' ? '⚡ Prime' : '📅 Season'} ratings`
+            : budget != null
+              ? `${players.filter(p => p._eligible && !p._budgetBlocked).length} affordable · ${ratingType === 'prime' ? '⚡ Prime' : '📅 Season'} ratings`
+              : `${players.filter(p => p._eligible).length} available · ${ratingType === 'prime' ? '⚡ Prime' : '📅 Season'} ratings`
           }
         </span>
         {canReroll ? (
@@ -1054,7 +1076,7 @@ export function BiddingWarOverlay({ player, basePrice, ratingType, mode = 'ipl',
         {/* Player */}
         <div style={{ marginBottom: '0.875rem' }}>
           <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)' }}>{player.name}</div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{player.nationality} · {player.role} · {displayOvr} OVR</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{player.nationality} · {player.role} · {displayOvr} OVR</div>
         </div>
 
         {/* Rival chip */}

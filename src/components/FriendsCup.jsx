@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getSupabase } from '../lib/supabase.js'
+import CupSettingsScreen from './CupSettingsScreen.jsx'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -90,18 +91,24 @@ function buildBracket(results) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function FriendsCup({ user, onStartSeason, onHome }) {
+export default function FriendsCup({ user, onStartSeason, onHome, joinCode: propJoinCode = null }) {
   const [savedSession] = useState(() => loadSession())
   const [phase, setPhase] = useState(() => savedSession ? 'lobby' : 'entry')
   const [myId]           = useState(() => user?.id ?? getAnonId())
   const [nameInput, setNameInput] = useState(() => localStorage.getItem('live_cup_display_name') || user?.email?.split('@')[0] || '')
-  const [joinCode, setJoinCode]   = useState('')
+  const [joinInput, setJoinInput] = useState(() => propJoinCode ?? '')
   const [joinError, setJoinError] = useState('')
+  const [createError, setCreateError] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [pendingCupMode, setPendingCupMode] = useState('ipl')
+  const [pendingCupSettings, setPendingCupSettings] = useState(null)
 
   const [room, setRoom]       = useState(null)
   const [players, setPlayers] = useState([])  // from friends_cup_results
   const [myResult, setMyResult] = useState(null)
+  const [countdown, setCountdown] = useState(null) // seconds left in next-season timer
+  const hasStartedNextRef  = useRef(false) // prevent double-trigger when timer fires
+  const isReadyForNextRef  = useRef(false) // always-fresh: is current player in readyPlayers?
 
   const isMobile = window.innerWidth <= 640
   const subRef = useRef([])
@@ -110,6 +117,35 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
     if (savedSession?.roomId) subscribeToRoom(savedSession.roomId)
     return () => subRef.current.forEach(s => { try { s.unsubscribe() } catch {} })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep isReadyForNextRef fresh so the timer closure never reads stale readyPlayers
+  useEffect(() => {
+    const readyPlayers = room?.settings?.nextSeason?.readyPlayers ?? []
+    isReadyForNextRef.current = readyPlayers.includes(myId)
+  }, [room?.settings?.nextSeason?.readyPlayers, myId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Next-season countdown timer ─────────────────────────────────────────────
+  useEffect(() => {
+    const meta = room?.settings?.nextSeason
+    if (!meta?.startsAt) { setCountdown(null); return }
+    hasStartedNextRef.current = false
+    function tick() {
+      const remaining = Math.max(0, Math.ceil((meta.startsAt - Date.now()) / 1000))
+      setCountdown(remaining)
+      if (remaining <= 0 && !hasStartedNextRef.current && isReadyForNextRef.current) {
+        hasStartedNextRef.current = true
+        handlePlaySeason()
+      }
+    }
+    tick()
+    const id = setInterval(tick, 500)
+    return () => clearInterval(id)
+  }, [room?.settings?.nextSeason?.startsAt]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-fill join code from deep link prop
+  useEffect(() => {
+    if (propJoinCode && phase === 'entry') setJoinInput(propJoinCode)
+  }, [propJoinCode, phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const subscribeToRoom = useCallback(async (roomId) => {
     const sb = await getSupabase()
@@ -135,14 +171,28 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
         () => loadResults())
       .subscribe()
 
-    subRef.current = [resSub]
+    // Subscribe to room changes (settings updates — used for next-season timer)
+    const roomSub = sb.channel(`fcup_room_${roomId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'friends_cup_rooms', filter: `id=eq.${roomId}` },
+        (payload) => { if (payload.new) setRoom(payload.new) })
+      .subscribe()
+
+    subRef.current = [resSub, roomSub]
   }, [myId])
 
-  // ── Create room ──────────────────────────────────────────────────────────────
-  async function handleCreate() {
+  // ── Create room — step 1: go to settings screen ─────────────────────────────
+  function handleCreateClick() {
+    if (!nameInput.trim()) return
+    setPhase('cup-settings')
+  }
+
+  // ── Create room — step 2: settings confirmed, create room in DB ──────────────
+  async function handleSettingsConfirm(cupMode, cupSettings) {
+    setPendingCupMode(cupMode)
+    setPendingCupSettings(cupSettings)
     const name = nameInput.trim()
-    if (!name) return
     setIsCreating(true)
+    setCreateError('')
     try {
       const sb = await getSupabase()
       if (!sb) throw new Error('No connection')
@@ -153,10 +203,26 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
         if (!data) break
       } while (++attempt < 5)
 
-      const { data: roomData, error } = await sb.from('friends_cup_rooms').insert({ code, host_id: myId, mode: 'ipl' }).select().single()
-      if (error) throw error
+      // Strip computed fields before storing (filteredEntries is too large for DB)
+      const { filteredEntries, composition, hardMode, ...dbSettings } = cupSettings
 
-      // Reserve a spot (without result yet)
+      // Try full insert with mode + settings; fall back to minimal insert if table columns are missing
+      let roomData
+      const { data: d1, error: e1 } = await sb.from('friends_cup_rooms')
+        .insert({ code, host_id: myId, mode: cupMode, settings: dbSettings })
+        .select().single()
+      if (e1) {
+        console.warn('Full insert failed, trying minimal insert:', e1.message)
+        const { data: d2, error: e2 } = await sb.from('friends_cup_rooms')
+          .insert({ code, host_id: myId })
+          .select().single()
+        if (e2) throw e2
+        // Attach mode + settings locally so the session and room state are correct
+        roomData = { ...d2, mode: cupMode, settings: dbSettings }
+      } else {
+        roomData = d1
+      }
+
       await sb.from('friends_cup_results').upsert({ room_id: roomData.id, player_id: myId, display_name: name, wins: 0, losses: 0 }, { onConflict: 'room_id,player_id' })
 
       localStorage.setItem('live_cup_display_name', name)
@@ -164,14 +230,16 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
       saveSession(roomData.id, roomData.code, roomData.mode)
       await subscribeToRoom(roomData.id)
       setPhase('lobby')
-    } catch (e) { console.error(e) }
-    finally { setIsCreating(false) }
+    } catch (e) {
+      console.error(e)
+      setCreateError(e?.message || 'Failed to create room. Please try again.')
+    } finally { setIsCreating(false) }
   }
 
   // ── Join room ────────────────────────────────────────────────────────────────
   async function handleJoin() {
     const name = nameInput.trim()
-    const code = joinCode.trim().toUpperCase()
+    const code = joinInput.trim().toUpperCase()
     if (!name || !code) return
     setJoinError('')
     const sb = await getSupabase()
@@ -190,12 +258,66 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
   }
 
   // ── Start season ─────────────────────────────────────────────────────────────
-  function handlePlaySeason() {
+  async function handlePlaySeason() {
     const roomId   = room?.id   ?? savedSession?.roomId
     const roomMode = room?.mode ?? savedSession?.mode ?? 'ipl'
     const name     = nameInput.trim() || localStorage.getItem('live_cup_display_name') || 'Player'
-    clearSession()  // will be set again when we return
-    onStartSeason({ roomId, playerId: myId, displayName: name }, roomMode)
+    const roomSettings = room?.settings ?? {}
+
+    // Clear nextSeason timer from DB so it doesn't re-trigger for latecomers
+    if (roomId && room?.settings?.nextSeason) {
+      try {
+        const sb = await getSupabase()
+        if (sb) {
+          const { nextSeason: _removed, ...restSettings } = room.settings
+          await sb.from('friends_cup_rooms').update({ settings: restSettings }).eq('id', roomId)
+        }
+      } catch { /* ignore — best effort */ }
+    }
+
+    onStartSeason({ roomId, playerId: myId, displayName: name }, roomMode, roomSettings)
+  }
+
+  // ── Host: initiate next season (20s ready timer) ────────────────────────────
+  async function handleInitNextSeason() {
+    if (!room) return
+    const sb = await getSupabase()
+    if (!sb) return
+    const newMeta = { startsAt: Date.now() + 20000, readyPlayers: [myId] }
+    await sb.from('friends_cup_rooms').update({
+      settings: { ...(room.settings ?? {}), nextSeason: newMeta },
+    }).eq('id', room.id)
+    // Optimistic local update so host sees the countdown immediately
+    setRoom(r => ({ ...r, settings: { ...(r?.settings ?? {}), nextSeason: newMeta } }))
+  }
+
+  // ── Any player: mark themselves ready for next season ───────────────────────
+  async function handleMarkReady() {
+    if (!room) return
+    const sb = await getSupabase()
+    if (!sb) return
+    const meta = room.settings?.nextSeason ?? {}
+    const readyPlayers = meta.readyPlayers ?? []
+    if (readyPlayers.includes(myId)) return
+    const newMeta = { ...meta, readyPlayers: [...readyPlayers, myId] }
+    await sb.from('friends_cup_rooms').update({
+      settings: { ...(room.settings ?? {}), nextSeason: newMeta },
+    }).eq('id', room.id)
+    setRoom(r => ({ ...r, settings: { ...(r?.settings ?? {}), nextSeason: newMeta } }))
+  }
+
+  // ── Host: force-start immediately ───────────────────────────────────────────
+  async function handleStartNow() {
+    if (!room) return
+    const sb = await getSupabase()
+    if (!sb) return
+    const meta = room.settings?.nextSeason ?? {}
+    // Push startsAt to the past so all clients' timers fire immediately
+    const newMeta = { ...meta, startsAt: Date.now() - 1 }
+    await sb.from('friends_cup_rooms').update({
+      settings: { ...(room.settings ?? {}), nextSeason: newMeta },
+    }).eq('id', room.id)
+    setRoom(r => ({ ...r, settings: { ...(r?.settings ?? {}), nextSeason: newMeta } }))
   }
 
   // ── Called by App.jsx after sim completes ────────────────────────────────────
@@ -230,19 +352,34 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
     <Card style={{ marginBottom: '0.75rem' }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.25rem' }}>🏠 Create a room</div>
       <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.75rem' }}>Share the 6-letter code with friends.</div>
-      <PrimaryBtn onClick={handleCreate} disabled={!nameInput.trim() || isCreating} style={{ width: '100%' }}>
-        {isCreating ? 'Creating…' : 'Create Room →'}
+      <PrimaryBtn onClick={handleCreateClick} disabled={!nameInput.trim()} style={{ width: '100%' }}>
+        Set Rules & Create →
       </PrimaryBtn>
     </Card>
 
     <Card>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.5rem' }}>🔗 Join a room</div>
-      <input value={joinCode} onChange={e => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
+      <input value={joinInput} onChange={e => { setJoinInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setJoinError('') }}
         placeholder="6-letter code" maxLength={6}
         style={{ width: '100%', padding: '0.625rem 0.75rem', background: 'rgba(255,255,255,0.05)', border: `1px solid ${joinError ? '#ef4444' : 'rgba(255,255,255,0.12)'}`, borderRadius: '0.5rem', color: 'var(--text)', fontSize: '0.9rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }} />
       {joinError && <div style={{ fontSize: '0.72rem', color: '#ef4444', marginBottom: '0.5rem' }}>{joinError}</div>}
-      <PrimaryBtn onClick={handleJoin} disabled={!nameInput.trim() || joinCode.length < 6} style={{ width: '100%' }}>Join Room →</PrimaryBtn>
+      <PrimaryBtn onClick={handleJoin} disabled={!nameInput.trim() || joinInput.length < 6} style={{ width: '100%' }}>Join Room →</PrimaryBtn>
     </Card>
+  </>)
+
+  // ── Cup settings (host only, before room is created) ─────────────────────────
+  if (phase === 'cup-settings') return wrap(<>
+    <CupSettingsScreen
+      onConfirm={handleSettingsConfirm}
+      onBack={() => { setPhase('entry'); setCreateError('') }}
+      compact
+      saveLabel={isCreating ? 'Creating…' : 'Create Room →'}
+    />
+    {createError && (
+      <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.875rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '0.5rem', fontSize: '0.78rem', color: '#ef4444', fontWeight: 700 }}>
+        ⚠️ {createError}
+      </div>
+    )}
   </>)
 
   // ── Lobby / results ───────────────────────────────────────────────────────────
@@ -256,52 +393,77 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
       <Card style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>Room Code</div>
         <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '0.18em', marginBottom: '0.25rem' }}>{roomCode}</div>
-        <button onClick={() => { try { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#fcup=${roomCode}`) } catch {} }}
-          style={{ fontSize: '0.72rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
-          📋 Copy invite link
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button onClick={() => { try { navigator.clipboard.writeText(`https://16zero.in/#fcup=${roomCode}`) } catch {} }}
+            style={{ fontSize: '0.72rem', color: '#6366f1', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: 700, padding: '0.3rem 0.65rem' }}>
+            📋 Copy Link
+          </button>
+          <button onClick={() => {
+            const hostName = players.find(p => p.player_id === room?.host_id)?.display_name || nameInput.trim() || 'A friend'
+            const shareUrl = `https://16zero.in/#fcup=${roomCode}`
+            const text = `Join ${hostName}'s Friends Cup 🏏\n${shareUrl}`
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank')
+          }} style={{ fontSize: '0.72rem', color: '#22c55e', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: 700, padding: '0.3rem 0.65rem' }}>
+            💬 Share on WhatsApp
+          </button>
+        </div>
       </Card>
 
       {/* Leaderboard */}
       <Card style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.75rem' }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.625rem' }}>
           📊 Standings ({players.length} player{players.length !== 1 ? 's' : ''})
         </div>
         {players.length === 0 ? (
           <div style={{ fontSize: '0.78rem', color: '#475569', textAlign: 'center', padding: '0.875rem' }}>Waiting for players…</div>
         ) : (
-          players
-            .slice()
-            .sort((a, b) => {
-              if (b.wins !== a.wins) return b.wins - a.wins
-              return stageRank(b.stage_reached) - stageRank(a.stage_reached)
-            })
-            .map((p, idx) => (
-              <div key={p.player_id} style={{
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                padding: '0.5rem 0.75rem', marginBottom: '0.3rem',
-                background: p.player_id === myId ? 'rgba(200,16,46,0.08)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${p.player_id === myId ? 'rgba(200,16,46,0.25)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: '0.5rem',
-              }}>
-                <div style={{ width: 24, textAlign: 'center', fontWeight: 800, color: idx < 4 ? '#22c55e' : '#64748b', fontSize: '0.75rem' }}>
-                  {idx < 4 ? `Q${idx + 1}` : idx + 1}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.display_name}{p.player_id === myId ? ' ★' : ''}
+          <>
+            {/* Column header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '24px 1fr 32px 32px 32px 42px', gap: '0.2rem', padding: '0 0.5rem 0.35rem', fontSize: '0.58rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div>#</div><div>Player</div>
+              <div style={{ textAlign: 'center' }}>P</div>
+              <div style={{ textAlign: 'center' }}>W</div>
+              <div style={{ textAlign: 'center' }}>L</div>
+              <div style={{ textAlign: 'center' }}>Pts</div>
+            </div>
+            {players
+              .slice()
+              .sort((a, b) => {
+                const ptsA = (a.wins ?? 0) * 2, ptsB = (b.wins ?? 0) * 2
+                if (ptsB !== ptsA) return ptsB - ptsA
+                return stageRank(b.stage_reached) - stageRank(a.stage_reached)
+              })
+              .map((p, idx) => {
+                const played = (p.wins ?? 0) + (p.losses ?? 0)
+                const pts = (p.wins ?? 0) * 2
+                const isMe = p.player_id === myId
+                return (
+                  <div key={p.player_id} style={{
+                    display: 'grid', gridTemplateColumns: '24px 1fr 32px 32px 32px 42px', gap: '0.2rem',
+                    alignItems: 'center', padding: '0.4rem 0.5rem', marginBottom: '0.2rem',
+                    background: isMe ? 'rgba(200,16,46,0.08)' : idx === 0 && pts > 0 ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${isMe ? 'rgba(200,16,46,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: '0.5rem', fontSize: '0.78rem',
+                  }}>
+                    <div style={{ fontWeight: 800, color: idx === 0 && pts > 0 ? '#f59e0b' : idx < 4 ? '#22c55e' : '#64748b', textAlign: 'center' }}>
+                      {idx < 4 ? `Q${idx + 1}` : idx + 1}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.display_name}{isMe ? ' ★' : ''}
+                      </div>
+                      {(p.stage_reached || p.ipl_outcome) && (
+                        <div style={{ fontSize: '0.65rem', color: '#64748b' }}>{stageLabel(p)}</div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'center', color: '#64748b' }}>{played || '–'}</div>
+                    <div style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>{p.wins ?? 0}</div>
+                    <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{p.losses ?? 0}</div>
+                    <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 900 }}>{pts}</div>
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{stageLabel(p)}</div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  {(p.stage_reached || p.wins > 0) ? (
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#22c55e' }}>{p.wins}W-{p.losses}L</div>
-                  ) : (
-                    <div style={{ fontSize: '0.68rem', color: '#475569' }}>Not played</div>
-                  )}
-                </div>
-              </div>
-            ))
+                )
+              })}
+          </>
         )}
       </Card>
 
@@ -327,19 +489,79 @@ export default function FriendsCup({ user, onStartSeason, onHome }) {
         </Card>
       )}
 
-      {/* Play / replay button */}
-      {!haveResult ? (
-        <PrimaryBtn onClick={handlePlaySeason} style={{ width: '100%', marginBottom: '0.5rem' }}>
-          🏏 Play My Season →
-        </PrimaryBtn>
-      ) : (
-        <>
-          <div style={{ padding: '0.75rem', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '0.625rem', textAlign: 'center', marginBottom: '0.625rem', fontSize: '0.82rem', color: '#22c55e', fontWeight: 800 }}>
-            ✓ {myResult.wins}W-{myResult.losses}L submitted · {stageLabel(myResult)}
-          </div>
-          <GhostBtn onClick={handlePlaySeason} style={{ width: '100%' }}>🔄 Play Again (replaces your result)</GhostBtn>
-        </>
-      )}
+      {/* Play / replay / next-season section */}
+      {(() => {
+        const amHost = room?.host_id === myId
+        const nextSeasonMeta = room?.settings?.nextSeason
+        const readyPlayers = nextSeasonMeta?.readyPlayers ?? []
+        const iAmReady = readyPlayers.includes(myId)
+        const nextSeasonActive = !!nextSeasonMeta?.startsAt
+
+        // If next-season timer is active: show countdown + ready/start-now UI
+        if (nextSeasonActive) {
+          return (
+            <Card style={{ marginBottom: '0.625rem', background: 'rgba(34,197,94,0.07)', borderColor: 'rgba(34,197,94,0.3)' }}>
+              <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
+                  ⏱ Next Season Starting
+                </div>
+                {countdown !== null && countdown > 0 ? (
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
+                    {countdown}s
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: '#22c55e' }}>Starting…</div>
+                )}
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.3rem' }}>
+                  {readyPlayers.length} / {players.length} ready
+                </div>
+              </div>
+              {!iAmReady ? (
+                <PrimaryBtn onClick={handleMarkReady} style={{ width: '100%', marginBottom: '0.5rem', background: 'linear-gradient(135deg,#22c55e,#15803d)' }}>
+                  ✓ I'm Ready!
+                </PrimaryBtn>
+              ) : (
+                <div style={{ textAlign: 'center', fontSize: '0.82rem', color: '#22c55e', fontWeight: 800, marginBottom: '0.5rem' }}>
+                  ✓ You're in for next season
+                </div>
+              )}
+              {amHost && (
+                <GhostBtn onClick={handleStartNow} style={{ width: '100%' }}>
+                  🚀 Start Now
+                </GhostBtn>
+              )}
+            </Card>
+          )
+        }
+
+        // First time playing
+        if (!haveResult) {
+          return (
+            <PrimaryBtn onClick={handlePlaySeason} style={{ width: '100%', marginBottom: '0.5rem' }}>
+              🏏 Play My Season →
+            </PrimaryBtn>
+          )
+        }
+
+        // Already played: show result + next-season option
+        return (
+          <>
+            <div style={{ padding: '0.75rem', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '0.625rem', textAlign: 'center', marginBottom: '0.625rem', fontSize: '0.82rem', color: '#22c55e', fontWeight: 800 }}>
+              ✓ Season submitted · {stageLabel(myResult)}
+            </div>
+            {amHost ? (
+              <PrimaryBtn onClick={handleInitNextSeason} style={{ width: '100%', marginBottom: '0.5rem' }}>
+                ⏱ Start Next Season (20s timer) →
+              </PrimaryBtn>
+            ) : (
+              <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#475569', marginBottom: '0.5rem' }}>
+                Waiting for host to start next season…
+              </div>
+            )}
+            <GhostBtn onClick={handlePlaySeason} style={{ width: '100%' }}>🔄 Play Solo Again</GhostBtn>
+          </>
+        )
+      })()}
     </>)
   }
 

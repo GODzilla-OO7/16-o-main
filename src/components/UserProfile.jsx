@@ -51,8 +51,8 @@ function StatCard({ label, value, color = 'var(--text)', sub }) {
       borderRadius: '0.75rem', padding: '0.875rem 0.75rem', textAlign: 'center',
     }}>
       <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.3rem' }}>{label}</div>
-      {sub && <div style={{ fontSize: '0.58rem', color: 'var(--muted)', marginTop: '0.15rem' }}>{sub}</div>}
+      <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.3rem' }}>{label}</div>
+      {sub && <div style={{ fontSize: '0.62rem', color: 'var(--muted)', marginTop: '0.15rem' }}>{sub}</div>}
     </div>
   )
 }
@@ -68,7 +68,7 @@ function HighlightCard({ icon, value, label, desc, color = 'var(--text)' }) {
       <div style={{ fontSize: '1.25rem', fontWeight: 900, color, lineHeight: 1 }}>
         {value} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-dim)' }}>{label}</span>
       </div>
-      <div style={{ fontSize: '0.58rem', color: 'var(--muted)', fontWeight: 600, lineHeight: 1.3 }}>{desc}</div>
+      <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 600, lineHeight: 1.3 }}>{desc}</div>
     </div>
   )
 }
@@ -92,12 +92,12 @@ function MilestoneBadge({ icon, label, count, unlocked }) {
         {unlocked ? icon : '🔒'}
       </div>
       <div style={{
-        fontSize: '0.56rem', fontWeight: 800,
+        fontSize: '0.62rem', fontWeight: 800,
         color: unlocked ? '#f59e0b' : 'var(--muted)',
         textTransform: 'uppercase', letterSpacing: '0.05em',
         textAlign: 'center', maxWidth: 56, lineHeight: 1.2,
       }}>{label}</div>
-      {unlocked && <div style={{ fontSize: '0.5rem', color: 'var(--muted)' }}>{count}+</div>}
+      {unlocked && <div style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>{count}+</div>}
     </div>
   )
 }
@@ -123,16 +123,16 @@ function BestWorstCard({ result, type }) {
       border: `1px solid ${isBest ? '#f59e0b44' : 'var(--card-border)'}`,
       borderRadius: '0.75rem', padding: '0.875rem',
     }}>
-      <div style={{ fontSize: '0.55rem', fontWeight: 900, color: isBest ? '#f59e0b' : 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 900, color: isBest ? '#f59e0b' : 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>
         {isBest ? '⬆ Best' : '⬇ Worst'} · {MODE_EMOJI[result.mode]} {MODE_LABEL[result.mode]}
       </div>
       <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
         {result.wins}W – {result.losses}L
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-        {oc && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: oc.color }}>{oc.icon} {oc.text}</span>}
-        <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>{date}</span>
-        {result.perfect && <span style={{ fontSize: '0.6rem', color: '#f59e0b' }}>✨ Perfect</span>}
+        {oc && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: oc.color }}>{oc.icon} {oc.text}</span>}
+        <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>{date}</span>
+        {result.perfect && <span style={{ fontSize: '0.65rem', color: '#f59e0b' }}>✨ Perfect</span>}
       </div>
     </div>
   )
@@ -157,15 +157,15 @@ function ResultRow({ result }) {
           <span style={{ color: '#ef4444' }}>{result.losses}L</span>
           {result.perfect && <span style={{ fontSize: '0.62rem', color: '#f59e0b' }}>✨</span>}
         </div>
-        <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: '0.1rem' }}>
+        <div style={{ fontSize: '0.65rem', color: 'var(--muted)', marginTop: '0.1rem' }}>
           {MODE_LABEL[result.mode] ?? result.mode} · {date}
         </div>
       </div>
       {oc && (
         <div style={{
-          fontSize: '0.62rem', fontWeight: 700, color: oc.color,
-          background: `${oc.color}18`, borderRadius: '0.3rem',
-          padding: '0.2rem 0.45rem', flexShrink: 0,
+          fontSize: '0.68rem', fontWeight: 700, color: oc.color,
+          background: `${oc.color}18`, borderRadius: '0.4rem',
+          padding: '0.25rem 0.55rem', flexShrink: 0,
         }}>
           {oc.icon} {oc.text}
         </div>
@@ -192,7 +192,7 @@ function canvasRoundRect(ctx, x, y, w, h, r) {
 
 function generateCabinetCard({ displayName, iplTitles, earnedAwards = [], totalSeasons, totalWins, bestSeasonWins, titlesTotal }) {
   const W = 630, PAD = 28
-  const DPR = window.devicePixelRatio || 2
+  const DPR = Math.max(window.devicePixelRatio || 1, 2)
   const INNER_W = W - PAD * 2
   const TILE_GAP = 8
   const COL_W = (INNER_W - TILE_GAP) / 2
@@ -223,36 +223,40 @@ function generateCabinetCard({ displayName, iplTitles, earnedAwards = [], totalS
   // Background
   ctx.fillStyle = '#0f172a'
   ctx.fillRect(0, 0, W, H)
-  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 320)
+  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, Math.max(H * 0.6, 320))
   glow.addColorStop(0, 'rgba(200,16,46,0.08)'); glow.addColorStop(1, 'transparent')
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H)
 
   // Header
   ctx.fillStyle = '#C8102E'
   ctx.beginPath(); ctx.arc(PAD + 5, HEADER_H / 2, 5, 0, Math.PI * 2); ctx.fill()
-  ctx.font = '700 12px system-ui,sans-serif'; ctx.fillStyle = '#475569'; ctx.textAlign = 'left'
+  ctx.font = '700 12px system-ui,sans-serif'; ctx.fillStyle = '#64748b'; ctx.textAlign = 'left'
   ctx.fillText('16ZERO.IN', PAD + 18, HEADER_H / 2 + 5)
   ctx.textAlign = 'right'; ctx.font = '500 11px system-ui,sans-serif'; ctx.fillStyle = '#334155'
   ctx.fillText('Cricket Manager', W - PAD, HEADER_H / 2 + 5); ctx.textAlign = 'left'
 
   // Name + IPL titles box
-  ctx.font = '600 10px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
+  ctx.font = '600 11px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
   ctx.fillText('HEAD COACH', PAD, NAME_Y + 8)
   ctx.font = '800 22px system-ui,sans-serif'; ctx.fillStyle = '#f1f5f9'
-  ctx.fillText(displayName || 'Coach', PAD, NAME_Y + 34)
+  const BX_LIMIT = W - PAD - 82 - 12
+  let nameText = displayName || 'Coach'
+  while (ctx.measureText(nameText).width > BX_LIMIT && nameText.length > 2) nameText = nameText.slice(0, -1)
+  if (nameText !== (displayName || 'Coach')) nameText = nameText.slice(0, -1) + '…'
+  ctx.fillText(nameText, PAD, NAME_Y + 34)
 
   const BW = 82, BH = 46, BX = W - PAD - BW, BY = NAME_Y
   ctx.fillStyle = '#1e293b'; canvasRoundRect(ctx, BX, BY, BW, BH, 8); ctx.fill()
   ctx.font = '800 20px system-ui,sans-serif'; ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'center'
-  ctx.fillText(String(iplTitles), BX + BW / 2, BY + 26)
-  ctx.font = '500 9px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
-  ctx.fillText('IPL titles', BX + BW / 2, BY + 40); ctx.textAlign = 'left'
+  ctx.fillText(String(titlesTotal), BX + BW / 2, BY + 26)
+  ctx.font = '500 11px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
+  ctx.fillText('Titles', BX + BW / 2, BY + 40); ctx.textAlign = 'left'
 
   // Divider 1
   ctx.fillStyle = '#1e293b'; ctx.fillRect(PAD, DIV1_Y, INNER_W, 1)
 
   // Medals Won label
-  ctx.font = '700 9px system-ui,sans-serif'; ctx.fillStyle = '#475569'; ctx.letterSpacing = '1px'
+  ctx.font = '700 11px system-ui,sans-serif'; ctx.fillStyle = '#475569'; ctx.letterSpacing = '1px'
   ctx.fillText('MEDALS WON', PAD, MLABEL_Y + 14); ctx.letterSpacing = '0px'
   ctx.textAlign = 'right'; ctx.fillStyle = '#64748b'
   ctx.fillText(`${shown.length} earned`, W - PAD, MLABEL_Y + 14); ctx.textAlign = 'left'
@@ -272,7 +276,7 @@ function generateCabinetCard({ displayName, iplTitles, earnedAwards = [], totalS
     if (name !== award.name) name = name.slice(0, -1) + '…'
     ctx.fillText(name, tx + 42, ty + TILE_H / 2 + 1)
     if (award.desc) {
-      ctx.font = '500 9px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
+      ctx.font = '500 11px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
       let desc = award.desc
       while (ctx.measureText(desc).width > maxW && desc.length > 3) desc = desc.slice(0, -1)
       if (desc !== award.desc) desc = desc.slice(0, -1) + '…'
@@ -284,7 +288,7 @@ function generateCabinetCard({ displayName, iplTitles, earnedAwards = [], totalS
   ctx.fillStyle = '#1e293b'; ctx.fillRect(PAD, DIV2_Y, INNER_W, 1)
 
   // Career Overview
-  ctx.font = '700 9px system-ui,sans-serif'; ctx.fillStyle = '#475569'; ctx.letterSpacing = '1px'
+  ctx.font = '700 11px system-ui,sans-serif'; ctx.fillStyle = '#475569'; ctx.letterSpacing = '1px'
   ctx.fillText('CAREER OVERVIEW', PAD, CLABEL_Y + 14); ctx.letterSpacing = '0px'
 
   const stats = [
@@ -298,8 +302,10 @@ function generateCabinetCard({ displayName, iplTitles, earnedAwards = [], totalS
     const sx = PAD + i * (SW + TILE_GAP)
     ctx.fillStyle = '#1e293b'; canvasRoundRect(ctx, sx, CTILES_Y, SW, CAREER_TILE_H, 8); ctx.fill()
     ctx.font = '800 18px system-ui,sans-serif'; ctx.fillStyle = s.color; ctx.textAlign = 'center'
-    ctx.fillText(s.value, sx + SW / 2, CTILES_Y + 34)
-    ctx.font = '500 9px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
+    let val = s.value
+    while (ctx.measureText(val).width > SW - 12 && val.length > 1) val = val.slice(0, -1)
+    ctx.fillText(val, sx + SW / 2, CTILES_Y + 34)
+    ctx.font = '500 11px system-ui,sans-serif'; ctx.fillStyle = '#64748b'
     ctx.fillText(s.label, sx + SW / 2, CTILES_Y + 50)
     ctx.textAlign = 'left'
   })
@@ -332,10 +338,10 @@ function TrophyCard({ award, earned }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: earned ? 'var(--text)' : 'var(--muted)', lineHeight: 1.2 }}>{award.name}</div>
-        <div style={{ fontSize: '0.58rem', color: 'var(--muted)', marginTop: '0.15rem', lineHeight: 1.3 }}>{award.desc}</div>
+        <div style={{ fontSize: '0.62rem', color: 'var(--muted)', marginTop: '0.15rem', lineHeight: 1.3 }}>{award.desc}</div>
       </div>
       {earned && (
-        <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', flexShrink: 0 }}>✓</div>
+        <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#f59e0b', flexShrink: 0 }}>✓</div>
       )}
     </div>
   )
@@ -352,6 +358,7 @@ export default function UserProfile({ user, onClose, onSignOut }) {
   const [rivals,      setRivals]      = useState([])
   const [sharingWa,   setSharingWa]   = useState(false)
   const [savingImg,   setSavingImg]   = useState(false)
+  const [modeFilter,  setModeFilter]  = useState(null)  // null | 'ipl' | 'odi-wc' | 't20-wc'
 
   useEffect(() => {
     if (!user) return
@@ -467,21 +474,28 @@ export default function UserProfile({ user, onClose, onSignOut }) {
   }
 
   // ── Derived stats ────────────────────────────────────────────────────────
-  const totalSeasons   = profile?.total_games  ?? 0
-  const totalWins      = profile?.total_wins   ?? 0
-  const totalLosses    = profile?.total_losses ?? 0
-  const bestSeasonWins = profile?.best_streak  ?? 0
+  const activeResults  = modeFilter ? results.filter(r => r.mode === modeFilter) : results
+
+  // When a mode pill is active, compute from filtered results; otherwise use profile aggregates (authoritative)
+  const totalSeasons   = modeFilter ? activeResults.length : (profile?.total_games  ?? 0)
+  const totalWins      = modeFilter ? activeResults.reduce((s, r) => s + (r.wins ?? 0), 0)   : (profile?.total_wins   ?? 0)
+  const totalLosses    = modeFilter ? activeResults.reduce((s, r) => s + (r.losses ?? 0), 0) : (profile?.total_losses ?? 0)
+  const bestSeasonWins = modeFilter
+    ? (activeResults.length > 0 ? Math.max(...activeResults.map(r => r.wins ?? 0)) : 0)
+    : (profile?.best_streak ?? 0)
   const totalMatches   = totalWins + totalLosses
   const overallWinPct  = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0
 
-  const iplResults     = results.filter(r => r.mode === 'ipl')
-  const wcResults      = results.filter(r => r.mode !== 'ipl')
+  const iplResults     = activeResults.filter(r => r.mode === 'ipl')
+  const wcResults      = activeResults.filter(r => r.mode !== 'ipl')
   const iplTitles      = iplResults.filter(r => r.ipl_outcome === 'champion').length
   const wcTitles       = wcResults.filter(r => r.stage_reached === 'Champion').length
-  const perfectSeasons = results.filter(r => r.perfect).length
+  const perfectSeasons = activeResults.filter(r => r.perfect).length
   const playoffApps    = iplResults.filter(r => r.ipl_outcome && r.ipl_outcome !== 'not_qualified').length
+  const wcChampions    = wcResults.filter(r => r.stage_reached === 'Champion').length
+  const wcSemis        = wcResults.filter(r => ['Champion','Runner-up','Semi-Final'].includes(r.stage_reached)).length
 
-  const sortedByBest = [...results].sort((a, b) => rankOutcome(a) - rankOutcome(b) || b.wins - a.wins)
+  const sortedByBest = [...activeResults].sort((a, b) => rankOutcome(a) - rankOutcome(b) || b.wins - a.wins)
   const bestSeason   = sortedByBest[0] ?? null
   const worstSeason  = sortedByBest[sortedByBest.length - 1] ?? null
 
@@ -584,6 +598,34 @@ export default function UserProfile({ user, onClose, onSignOut }) {
               </div>
             </div>
 
+            {/* ── Mode filter pills ────────────────────────────────────────── */}
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+              {[
+                { key: 'ipl',    label: '🏏 IPL',    color: '#C8102E' },
+                { key: 'odi-wc', label: '🌍 ODI WC', color: '#3b82f6' },
+                { key: 't20-wc', label: '⚡ T20 WC', color: '#f59e0b' },
+              ].map(({ key, label, color }) => {
+                const active = modeFilter === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setModeFilter(active ? null : key)}
+                    style={{
+                      padding: '0.4rem 1rem',
+                      background: active ? `${color}22` : 'var(--card)',
+                      border: `1px solid ${active ? color : 'var(--border)'}`,
+                      borderRadius: '2rem',
+                      color: active ? color : 'var(--muted)',
+                      fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer',
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
             {/* ── Career Overview ──────────────────────────────────────────── */}
             <div style={{ marginBottom: '1.75rem' }}>
               <SectionHeader title="Career Overview" icon="📊" />
@@ -628,13 +670,23 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                   desc="Consecutive days opening the app"
                   color={loginStreak >= 7 ? '#f59e0b' : loginStreak >= 3 ? '#fb923c' : 'var(--text)'}
                 />
-                <HighlightCard
-                  icon="🏏"
-                  value={playoffApps}
-                  label="playoff runs"
-                  desc="IPL playoff appearances (last 20)"
-                  color={playoffApps >= 5 ? '#f59e0b' : '#C8102E'}
-                />
+                {modeFilter && modeFilter !== 'ipl' ? (
+                  <HighlightCard
+                    icon="🏆"
+                    value={wcChampions}
+                    label="champion"
+                    desc={`${modeFilter === 'odi-wc' ? 'ODI' : 'T20'} WC titles won`}
+                    color={wcChampions > 0 ? '#f59e0b' : 'var(--muted)'}
+                  />
+                ) : (
+                  <HighlightCard
+                    icon="🏏"
+                    value={playoffApps}
+                    label="playoff runs"
+                    desc="IPL playoff appearances (last 20)"
+                    color={playoffApps >= 5 ? '#f59e0b' : '#C8102E'}
+                  />
+                )}
                 <HighlightCard
                   icon="🎯"
                   value={bestSeasonWins}
@@ -677,7 +729,7 @@ export default function UserProfile({ user, onClose, onSignOut }) {
             </div>
 
             {/* ── Best & Worst Season ──────────────────────────────────────── */}
-            {results.length > 0 && (
+            {activeResults.length > 0 && (
               <div style={{ marginBottom: '1.75rem' }}>
                 <SectionHeader title="Best & Worst Season" icon="📈" />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -704,8 +756,8 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                         style={{
                           background: 'none', border: '1px solid var(--border)',
                           borderRadius: '0.4rem', color: 'var(--muted)',
-                          fontSize: '0.65rem', fontWeight: 700, cursor: sharingWa ? 'default' : 'pointer',
-                          padding: '0.2rem 0.5rem', opacity: sharingWa ? 0.6 : 1,
+                          fontSize: '0.7rem', fontWeight: 700, cursor: sharingWa ? 'default' : 'pointer',
+                          padding: '0.3rem 0.65rem', opacity: sharingWa ? 0.6 : 1,
                           transition: 'color 0.15s, border-color 0.15s',
                         }}
                       >
@@ -718,8 +770,8 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                       style={{
                         background: 'none', border: '1px solid var(--border)',
                         borderRadius: '0.4rem', color: 'var(--muted)',
-                        fontSize: '0.65rem', fontWeight: 700, cursor: savingImg ? 'default' : 'pointer',
-                        padding: '0.2rem 0.5rem', opacity: savingImg ? 0.6 : 1,
+                        fontSize: '0.7rem', fontWeight: 700, cursor: savingImg ? 'default' : 'pointer',
+                        padding: '0.3rem 0.65rem', opacity: savingImg ? 0.6 : 1,
                         transition: 'color 0.15s, border-color 0.15s',
                       }}
                     >
@@ -788,7 +840,7 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                         <div style={{ fontSize: '0.9rem', flexShrink: 0 }}>⚔️</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text)' }}>{r.name}</div>
-                          <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: '0.1rem' }}>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--muted)', marginTop: '0.1rem' }}>
                             {total} match{total !== 1 ? 'es' : ''} · {winPct}% win rate
                           </div>
                         </div>
@@ -798,7 +850,7 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                             <span style={{ color: 'var(--text-dim)', margin: '0 0.2rem' }}>–</span>
                             <span style={{ color: '#ef4444' }}>{r.losses}L</span>
                           </div>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, marginTop: '0.2rem', color: leading ? '#22c55e' : behind ? '#ef4444' : 'var(--muted)' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '0.2rem', color: leading ? '#22c55e' : behind ? '#ef4444' : 'var(--muted)' }}>
                             {leading ? 'You lead' : behind ? 'They lead' : 'Even'}
                           </div>
                         </div>
@@ -812,10 +864,10 @@ export default function UserProfile({ user, onClose, onSignOut }) {
             {/* ── Recent Seasons ───────────────────────────────────────────── */}
             <div>
               <SectionHeader
-                title={`Recent Seasons${results.length > 0 ? ` (last ${results.length})` : ''}`}
+                title={`Recent Seasons${activeResults.length > 0 ? ` (${activeResults.length})` : ''}`}
                 icon="📋"
               />
-              {results.length === 0 ? (
+              {activeResults.length === 0 ? (
                 <div style={{
                   textAlign: 'center', padding: '2.5rem',
                   background: 'var(--card)', borderRadius: '0.75rem',
@@ -826,7 +878,7 @@ export default function UserProfile({ user, onClose, onSignOut }) {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {results.map(r => <ResultRow key={r.id} result={r} />)}
+                  {activeResults.map(r => <ResultRow key={r.id} result={r} />)}
                 </div>
               )}
             </div>

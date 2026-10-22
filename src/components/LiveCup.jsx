@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { calcTeamStrength } from '../utils/simulator.js'
 import { MODE_CONFIG } from '../data/players.js'
 import { getSupabase } from '../lib/supabase.js'
+import CupSettingsScreen from './CupSettingsScreen.jsx'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -203,9 +204,9 @@ function TableRow({ rank, player, isMe }) {
         {player.display_name}{isMe ? ' ★' : ''}
         {player.team_name ? <span style={{ color: '#64748b', fontWeight: 600 }}> · {player.team_name}</span> : null}
       </div>
+      <div style={{ textAlign: 'center', color: '#64748b' }}>{played}</div>
       <div style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>{won}</div>
       <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{lost}</div>
-      <div style={{ textAlign: 'center', color: '#64748b' }}>{played}</div>
       <div style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 800 }}>{pts}</div>
     </div>
   )
@@ -235,11 +236,18 @@ export default function LiveCup({
   const [savedSession] = useState(() => loadSession())
 
   // ── Local phase & identity ──────────────────────────────────────────────
-  const [phase, setPhaseRaw] = useState(() => savedSession?.phase === 'lobby' ? 'lobby' : 'entry')
+  const [phase, setPhaseRaw] = useState(() => {
+    const s = loadSession()
+    if (s?.phase === 'lobby') return 'lobby'
+    if (s?.phase === 'table') return 'table'
+    return 'entry'
+  })
   function setPhase(p) {
     setPhaseRaw(p)
-    // Persist lobby phase so remount after draft restores correctly
-    if (p === 'lobby' && savedSession?.roomId) saveSession(savedSession.roomId, savedSession.code, savedSession.mode, 'lobby')
+    // Persist lobby/table phase so remount after draft/sim restores correctly
+    if ((p === 'lobby' || p === 'table') && savedSession?.roomId) {
+      saveSession(savedSession.roomId, savedSession.code, savedSession.mode, p)
+    }
   }
 
   const [myId]                = useState(() => user?.id ?? getAnonId())
@@ -255,6 +263,7 @@ export default function LiveCup({
 
   // ── My draft / team data ────────────────────────────────────────────────
   const [teamName, setTeamName] = useState('')
+  const [settingsSaved, setSettingsSaved] = useState(false)
 
   // ── Live cup fixtures + results for this player ─────────────────────────
   const [myFixtures, setMyFixtures] = useState([])
@@ -265,9 +274,9 @@ export default function LiveCup({
 
   const isMobile = window.innerWidth <= 640
 
-  // ── On mount: if we have a saved session (returning after draft), rejoin ──
+  // ── On mount: if we have a saved session (returning after draft or sim), rejoin ──
   useEffect(() => {
-    if (savedSession?.roomId && phase === 'lobby') {
+    if (savedSession?.roomId && (phase === 'lobby' || phase === 'table')) {
       subscribeToRoom(savedSession.roomId)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -336,7 +345,6 @@ export default function LiveCup({
     if (room?.status === 'playing' && myFixtures.length > 0 && phase === 'lobby') {
       const myPlayer = players.find(p => p.player_id === myId)
       if (myPlayer?.ready && myPlayer?.team) {
-        clearSession()
         startMySeason(myPlayer, myFixtures, room)
       }
     }
@@ -344,6 +352,9 @@ export default function LiveCup({
 
   function startMySeason(myPlayer, fixtures, roomData) {
     setPhase('playing')
+    // Save 'table' phase so that when the user returns from the Results screen,
+    // LiveCup remounts in the table view instead of the entry screen
+    saveSession(roomData.id, roomData.code, roomData.mode, 'table')
     const ctx = {
       roomId:     roomData.id,
       playerId:   myId,
@@ -452,7 +463,7 @@ export default function LiveCup({
   function handleStartDraft() {
     setPhase('drafting-wait')
     // Pass a callback: App.jsx calls it with (team, manager, ratingType) after manager select
-    onStartDraft(room.mode, async (team, manager, ratingType) => {
+    onStartDraft(room.mode, room.settings ?? {}, async (team, manager, ratingType) => {
       await saveDraftedTeam(team, manager, ratingType)
     })
   }
@@ -491,13 +502,16 @@ export default function LiveCup({
     setPhaseRaw('lobby')
   }
 
-  // ── Host: change mode ────────────────────────────────────────────────────
-  async function handleModeChange(newMode) {
-    if (!room || room.host_id !== myId) return
+  // ── Host: save settings (mode + all toggles) ────────────────────────────
+  async function handleSettingsSave(newMode, cupSettings) {
+    if (!room) return
     const sb = await getSupabase()
     if (!sb) return
-    await sb.from('live_cup_rooms').update({ mode: newMode }).eq('id', room.id)
-    setRoom(prev => ({ ...prev, mode: newMode }))
+    const { filteredEntries, composition, hardMode, ...dbSettings } = cupSettings
+    await sb.from('live_cup_rooms').update({ mode: newMode, settings: dbSettings }).eq('id', room.id)
+    setRoom(prev => ({ ...prev, mode: newMode, settings: dbSettings }))
+    setSettingsSaved(true)
+    setTimeout(() => setSettingsSaved(false), 2500)
   }
 
   // ── Host: start season — pre-calculate all H2H fixtures ──────────────────
@@ -641,9 +655,9 @@ export default function LiveCup({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <button
             onClick={onHome}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: '0.82rem', cursor: 'pointer', fontWeight: 700 }}
+            style={{ background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E', fontSize: '0.8rem', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: 700, padding: '0.3rem 0.65rem', letterSpacing: '0.02em' }}
           >
-            ← Home
+            🏠 Home
           </button>
           <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             ⚡ Live Friends Cup
@@ -759,37 +773,28 @@ export default function LiveCup({
           </button>
         </Card>
 
-        {/* Mode selector (host only) */}
-        {amHost && (
+        {/* Settings panel: host configures, others see read-only mode */}
+        {amHost ? (
           <Card style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
-              Mode (host picks)
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
+              Room Settings — only you see this
+              {settingsSaved && <span style={{ color: '#22c55e', marginLeft: '0.5rem', textTransform: 'none', fontWeight: 700 }}>✓ Saved</span>}
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {[
-                { id: 'ipl',    label: '🏏 IPL',    },
-                { id: 'odi-wc', label: '🏆 ODI WC'  },
-                { id: 't20-wc', label: '⚡ T20 WC'  },
-              ].map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => handleModeChange(m.id)}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem',
-                    background: room?.mode === m.id ? 'rgba(200,16,46,0.18)' : 'rgba(255,255,255,0.04)',
-                    border: `1.5px solid ${room?.mode === m.id ? 'rgba(200,16,46,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: '0.5rem',
-                    color: room?.mode === m.id ? '#ff4d6d' : '#64748b',
-                    fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer',
-                  }}
-                >
-                  {m.label}
-                </button>
-              ))}
+            <CupSettingsScreen
+              initialMode={room?.mode ?? 'ipl'}
+              onConfirm={handleSettingsSave}
+              compact
+              saveLabel={settingsSaved ? '✓ Settings Saved' : 'Save Settings'}
+            />
+          </Card>
+        ) : room?.mode ? (
+          <Card style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>Mode</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text)' }}>
+              {room.mode === 'ipl' ? '🏏 IPL' : room.mode === 't20-wc' ? '⚡ T20 WC' : '🌍 ODI WC'}
             </div>
           </Card>
-        )}
+        ) : null}
 
         {/* Team name */}
         {!myPlayer?.ready && (
@@ -910,9 +915,9 @@ export default function LiveCup({
         }}>
           <div>#</div>
           <div>Team</div>
+          <div style={{ textAlign: 'center' }}>P</div>
           <div style={{ textAlign: 'center' }}>W</div>
           <div style={{ textAlign: 'center' }}>L</div>
-          <div style={{ textAlign: 'center' }}>P</div>
           <div style={{ textAlign: 'center' }}>Pts</div>
         </div>
 

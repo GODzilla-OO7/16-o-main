@@ -464,7 +464,7 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
       if (actuallyWon) {
         setTimeout(() => setShowCelebration(true), 800)
       } else {
-        setTimeout(() => setIplPhase('done'), 800)
+        setTimeout(() => setShowHeartbreak(true), 800)
       }
     } else {
       // WC mode
@@ -595,7 +595,7 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
             </div>
             <button
               onClick={dismissCelebration}
-              style={{ marginTop: '2.5rem', padding: '0.875rem 2.5rem', background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: 'var(--bg)', border: 'none', borderRadius: '0.75rem', fontSize: '1rem', fontWeight: 800, cursor: 'pointer', animation: 'fade-in 0.5s 1.2s ease both', animationFillMode: 'both' }}
+              style={{ marginTop: '2.5rem', padding: '0.875rem 2.5rem', background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', border: 'none', borderRadius: '0.75rem', fontSize: '1rem', fontWeight: 800, cursor: 'pointer', animation: 'fade-in 0.5s 1.2s ease both', animationFillMode: 'both' }}
             >
               View Season Summary →
             </button>
@@ -828,14 +828,14 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
               {/* Orange Cap & Purple Cap quick boxes */}
               {topRunScorers.length > 0 && (
                 <div className="score-box cap-box" style={{ minWidth: 100, textAlign: 'center', padding: '0.75rem 0.75rem', background: 'linear-gradient(135deg,#7c2d12,#1c1002)', border: '1px solid #f9731644', borderRadius: '0.75rem' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>🧡 Orange Cap</div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>{mode === 'ipl' ? '🧡 Orange Cap' : '⭐ Top Scorer'}</div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{topRunScorers[0].name.split(' ').slice(-1)[0]}</div>
                   <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f97316', marginTop: '0.1rem' }}>{topRunScorers[0].runs} <span style={{ fontSize: '0.55rem', color: '#94a3b8' }}>runs</span></div>
                 </div>
               )}
               {topWicketTakers.length > 0 && (
                 <div className="score-box cap-box" style={{ minWidth: 100, textAlign: 'center', padding: '0.75rem 0.75rem', background: 'linear-gradient(135deg,#2e1065,#0f0520)', border: '1px solid #a855f744', borderRadius: '0.75rem' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>💜 Purple Cap</div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>{mode === 'ipl' ? '💜 Purple Cap' : '🎯 Top Wicket Taker'}</div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{topWicketTakers[0].name.split(' ').slice(-1)[0]}</div>
                   <div style={{ fontSize: '1rem', fontWeight: 900, color: '#a855f7', marginTop: '0.1rem' }}>{topWicketTakers[0].wickets} <span style={{ fontSize: '0.55rem', color: '#94a3b8' }}>wkts</span></div>
                 </div>
@@ -942,7 +942,7 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.75rem' }}>Tournament over for your team</div>
                 <button
                   onClick={callOnDone}
-                  style={{ padding: '0.875rem 2rem', background: '#C8102E', color: 'var(--bg)', border: 'none', borderRadius: '0.75rem', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer' }}
+                  style={{ padding: '0.875rem 2rem', background: '#C8102E', color: '#fff', border: 'none', borderRadius: '0.75rem', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer' }}
                 >
                   View Season Summary →
                 </button>
@@ -958,7 +958,7 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
             {[...playoffRevealed].reverse().map((r, ri) => {
               const origI = playoffRevealed.length - 1 - ri
               return (
-                <MatchCard key={`po-${origI}`} result={r} isLatest={false} animDelay={ri * 0.055} expanded={expandedMatch === `po-${origI}`} onToggle={() => setExpandedMatch(expandedMatch === `po-${origI}` ? null : `po-${origI}`)} />
+                <MatchCard key={`po-${origI}`} result={r} isLatest={false} animDelay={ri * 0.055} expanded={expandedMatch === `po-${origI}`} onToggle={() => setExpandedMatch(expandedMatch === `po-${origI}` ? null : `po-${origI}`)} enableQTEs={enableQTEs} />
               )
             })}
 
@@ -971,7 +971,7 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
             {[...revealed].reverse().map((r, ri) => {
               const origI = revealed.length - 1 - ri
               return (
-                <MatchCard key={origI} result={r} isLatest={false} animDelay={ri * 0.055} expanded={expandedMatch === origI} onToggle={() => setExpandedMatch(expandedMatch === origI ? null : origI)} />
+                <MatchCard key={origI} result={r} isLatest={false} animDelay={ri * 0.055} expanded={expandedMatch === origI} onToggle={() => setExpandedMatch(expandedMatch === origI ? null : origI)} enableQTEs={enableQTEs} />
               )
             })}
 
@@ -982,19 +982,19 @@ export default function MatchSimulator({ team, mode, manager, ratingType, freePo
           {/* Right — leaderboard */}
           {revealed.length > 0 && (
             <div className="sim-right" style={{ position: 'sticky', top: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <LeaderboardPanel title="🟠 Orange Cap Race" entries={topRunScorers}   valueKey="runs"    unit="runs" color="#f97316" />
-              <LeaderboardPanel title="🟣 Purple Cap Race" entries={topWicketTakers} valueKey="wickets" unit="wkts" color="#a855f7" />
+              <LeaderboardPanel title={mode === 'ipl' ? "🟠 Orange Cap Race" : "⭐ Top Scorer Race"} entries={topRunScorers}   valueKey="runs"    unit="runs" color="#f97316" />
+              <LeaderboardPanel title={mode === 'ipl' ? "🟣 Purple Cap Race" : "🎯 Top Wicket Taker Race"} entries={topWicketTakers} valueKey="wickets" unit="wkts" color="#a855f7" />
               {/* Cap winner crowns — shown once season is complete */}
               {iplPhase !== 'league' && topRunScorers.length > 0 && (
                 <div style={{ background: 'linear-gradient(135deg,#7c2d12,#1c1002)', border: '1px solid #f9731644', borderRadius: '0.875rem', padding: '0.875rem 1rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>🧡 Orange Cap Winner</div>
+                  <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>{mode === 'ipl' ? '🧡 Orange Cap Winner' : '⭐ Top Scorer'}</div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#fff' }}>{topRunScorers[0].name}</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#f97316' }}>{topRunScorers[0].runs} <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>runs</span></div>
                 </div>
               )}
               {iplPhase !== 'league' && topWicketTakers.length > 0 && (
                 <div style={{ background: 'linear-gradient(135deg,#2e1065,#0f0520)', border: '1px solid #a855f744', borderRadius: '0.875rem', padding: '0.875rem 1rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>💜 Purple Cap Winner</div>
+                  <div style={{ fontSize: '0.58rem', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.35rem' }}>{mode === 'ipl' ? '💜 Purple Cap Winner' : '🎯 Top Wicket Taker'}</div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#fff' }}>{topWicketTakers[0].name}</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#a855f7' }}>{topWicketTakers[0].wickets} <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>wkts</span></div>
                 </div>
@@ -1152,7 +1152,7 @@ function parseScoreStr(str) {
 
 function buildFirstInningsPoints(finalRuns, finalWickets, format) {
   const totalOvers = format === 'odi' ? 50 : 20
-  const marks      = format === 'odi' ? [10, 20, 30, 40, 45, 50] : [4, 7, 12, 15, 18, 20]
+  const marks      = format === 'odi' ? [10, 20, 30, 40, 45, 50] : [4, 12, 18, 20]
 
   return marks.map((over, i) => {
     const isLast = i === marks.length - 1
@@ -1393,11 +1393,11 @@ function FinalBat({ result, format, myBatting, team, onComplete }) {
 }
 
 function buildChasePoints(targetRuns, finalRuns, finalWickets, format) {
-  // Always generates the same 4 checkpoints as buildFirstInningsPoints [7,15,18,20]
+  // Always generates the same checkpoints as buildFirstInningsPoints
   // so the second innings bar mirrors the first innings bar.
   // The "stop at winner" happens naturally at the final checkpoint when needed===0.
   const totalOvers = format === 'odi' ? 50 : 20
-  const marks      = format === 'odi' ? [10, 20, 30, 40, 45, 50] : [4, 7, 12, 15, 18, 20]
+  const marks      = format === 'odi' ? [10, 20, 30, 40, 45, 50] : [4, 12, 18, 20]
 
   return marks.map((over, i) => {
     const isLast = i === marks.length - 1
@@ -1453,8 +1453,8 @@ function FinalChase({ result, format, team, myStr, myChasing, enableQTEs = true,
     )
   }, [team, myChasing])
 
-  // QTE fires at index 1 (over 7 — powerplay end) AND index 4 (over 18 — death)
-  const QTE_INDICES = new Set([1, 4])
+  // QTE fires at index 1 (over 12 — mid innings) AND index 2 (over 18 — death)
+  const QTE_INDICES = new Set([1, 2])
 
   function tryQTE(next) {
     if (!enableQTEs) return false
@@ -1471,12 +1471,12 @@ function FinalChase({ result, format, team, myStr, myChasing, enableQTEs = true,
         .filter(p => ['opener','top-order','middle-order','wicket-keeper','all-rounder'].includes(p.role))
       if (availableBatters.length === 0) return false  // all batters gone, skip QTE
 
-      const isDeath = next === 4
+      const isDeath = next === 2
       if (isDeath) {
         const r = Math.random()
         type = r < 0.4 ? 'free-hit' : r < 0.7 ? 'drs' : 'last-ball-six'
       } else {
-        // Powerplay end
+        // Mid innings
         const r = Math.random()
         type = r < 0.4 ? 'powerplay' : r < 0.7 ? 'half-century' : 'free-hit'
       }
@@ -1484,7 +1484,7 @@ function FinalChase({ result, format, team, myStr, myChasing, enableQTEs = true,
     } else {
       const bowlers = team.filter(p => ['pace-bowler','spin-bowler','all-rounder'].includes(p.role))
       const wk = team.find(p => p.role === 'wicket-keeper')
-      const isDeath = next === 4
+      const isDeath = next === 2
       if (isDeath) {
         const r = Math.random()
         type = r < 0.35 ? 'hat-trick' : r < 0.65 ? 'last-over' : 'catch'
@@ -1685,19 +1685,19 @@ function FinalChase({ result, format, team, myStr, myChasing, enableQTEs = true,
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
             <div style={{ flex: 1, padding: '0.5rem 0.25rem', textAlign: 'center', background: pressureBg, border: `1px solid ${pressureColor}44`, borderRadius: '0.5rem', animation: isDeathCrunch ? 'pulse-glow 1.1s ease-in-out infinite' : 'none' }}>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: pressureColor, lineHeight: 1 }}>{pt.needed}</div>
-              <div style={{ fontSize: '0.5rem', color: pressureColor, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>needed</div>
+              <div style={{ fontSize: '0.6rem', color: pressureColor, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>needed</div>
             </div>
             <div style={{ flex: 1, padding: '0.5rem 0.25rem', textAlign: 'center', background: isDeathCrunch ? '#ef444412' : 'var(--border2)', border: `1px solid ${isDeathCrunch ? '#ef444433' : 'var(--border)'}`, borderRadius: '0.5rem' }}>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: isDeathCrunch ? '#ef4444' : 'var(--text)', lineHeight: 1 }}>{pt.ballsLeft}</div>
-              <div style={{ fontSize: '0.5rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>balls</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>balls</div>
             </div>
             <div style={{ flex: 1, padding: '0.5rem 0.25rem', textAlign: 'center', background: 'var(--border2)', border: '1px solid var(--border)', borderRadius: '0.5rem' }}>
               <div style={{ fontSize: '1.2rem', fontWeight: 900, color: pressureColor, lineHeight: 1 }}>{pt.rrr}</div>
-              <div style={{ fontSize: '0.5rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>req rr</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>req rr</div>
             </div>
             <div style={{ flex: 1, padding: '0.5rem 0.25rem', textAlign: 'center', background: pt.wkts >= 7 ? '#ef444412' : 'var(--border2)', border: `1px solid ${pt.wkts >= 7 ? '#ef444433' : 'var(--border)'}`, borderRadius: '0.5rem' }}>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: pt.wkts >= 7 ? '#ef4444' : 'var(--text)', lineHeight: 1 }}>{pt.wkts}</div>
-              <div style={{ fontSize: '0.5rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>wkts</div>
+              <div style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.1rem' }}>wkts</div>
             </div>
           </div>
         )}
@@ -1989,7 +1989,7 @@ function IPLTableView({ table, position, qualified, leagueWins, onProceed, onSum
 
 // ─── Match card ───────────────────────────────────────────────────────────────
 
-function MatchCard({ result, isLatest, expanded, onToggle, animDelay = 0 }) {
+function MatchCard({ result, isLatest, expanded, onToggle, animDelay = 0, enableQTEs = true }) {
   const { won, matchNum, stage, opponent, summary, myScore, oppScore, stats, oppStats, event, eventResult, superOver } = result
   const stageClr = stage === 'Final' ? '#f59e0b' : (stage?.includes('Qualifier') || stage === 'Eliminator' || stage?.includes('Semi')) ? '#a78bfa' : '#64748b'
 
@@ -2008,7 +2008,7 @@ function MatchCard({ result, isLatest, expanded, onToggle, animDelay = 0 }) {
   const divBorder = `1px solid ${won ? 'var(--win-border)' : 'var(--loss-border)'}`
 
   function QTEChip() {
-    if (!eventResult || !event) return null
+    if (!eventResult || !event || !enableQTEs) return null
     const icon = event.type === 'hat-trick' ? '🎳' : event.type === 'catch' || event.type === 'run-out' ? '🧤' : '🏏'
     const label = eventResult.success ? '⚡ QTE' : '✗ QTE'
     const color = eventResult.success ? '#f59e0b' : '#ef4444'

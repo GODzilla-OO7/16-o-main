@@ -21,6 +21,7 @@ import LiveCup from './components/LiveCup.jsx'
 import FriendsCup from './components/FriendsCup.jsx'
 import WeeklyCup from './components/WeeklyCup.jsx'
 import { STARTING_BUDGET } from './components/WheelSpin.jsx'
+import { DEFAULT_COMP } from './components/CupSettingsScreen.jsx'
 import MusicPlayer from './components/MusicPlayer.jsx'
 import ConfirmLeaveModal from './components/ConfirmLeaveModal.jsx'
 import { recordSeason, loadProfile, mergeSessionAwardsOnSignIn } from './hooks/useProfile.js'
@@ -122,6 +123,8 @@ export default function App() {
     } else if (hash.startsWith('#livecup=')) {
       setShowLiveCup(true)
     } else if (hash.startsWith('#fcup=')) {
+      const code = hash.slice('#fcup='.length).trim().toUpperCase()
+      if (code) setFcupJoinCode(code)
       setShowFriendsCup(true)
     } else if (hash === '#wcup') {
       setShowWeeklyCup(true)
@@ -238,6 +241,7 @@ export default function App() {
   const liveCupDraftDoneRef = useRef(null)                   // callback: (team, mgr, ratingType) → save + return to lobby
   const [showFriendsCup, setShowFriendsCup] = useState(false)
   const [friendsCupCtx, setFriendsCupCtx]   = useState(null)  // { roomId, playerId, displayName } during sim
+  const [fcupJoinCode,  setFcupJoinCode]    = useState(null)  // room code from deep link
   const [showWeeklyCup, setShowWeeklyCup]   = useState(false)
   const [weeklyCupCtx, setWeeklyCupCtx]     = useState(null)  // { playerId, displayName, weekKey } during sim
   const [comingSoonMsg, setComingSoonMsg] = useState(null)   // brief toast for unbuilt features
@@ -376,20 +380,29 @@ export default function App() {
     }
 
     // ── Friends Cup result submission ─────────────────────────────────────────
-    // Submit in background; keep ctx so results screen can show "Back to Cup" button.
+    // Cumulative: read existing wins/losses, then add this season's totals.
+    // Keep ctx so handlePlayAgain can re-open the lobby.
     const fCtx = friendsCupCtx
     if (fCtx?.roomId) {
-      getSupabase().then(sb => {
+      getSupabase().then(async sb => {
         if (!sb) return
-        sb.from('friends_cup_results').upsert({
-          room_id:      fCtx.roomId,
-          player_id:    fCtx.playerId,
-          display_name: fCtx.displayName,
-          wins:         sum.wins,
-          losses:       sum.losses,
+        // Fetch existing row to accumulate across seasons
+        const { data: existing } = await sb.from('friends_cup_results')
+          .select('wins,losses')
+          .eq('room_id', fCtx.roomId)
+          .eq('player_id', fCtx.playerId)
+          .maybeSingle()
+        const prevWins   = existing?.wins   ?? 0
+        const prevLosses = existing?.losses ?? 0
+        await sb.from('friends_cup_results').upsert({
+          room_id:       fCtx.roomId,
+          player_id:     fCtx.playerId,
+          display_name:  fCtx.displayName,
+          wins:          prevWins + sum.wins,
+          losses:        prevLosses + sum.losses,
           stage_reached: sum.stageReached ?? null,
-          ipl_outcome:  sum.iplOutcome ?? null,
-          submitted_at: new Date().toISOString(),
+          ipl_outcome:   sum.iplOutcome ?? null,
+          submitted_at:  new Date().toISOString(),
         }, { onConflict: 'room_id,player_id' })
       })
       // friendsCupCtx stays set so handlePlayAgain can re-open the lobby
@@ -421,6 +434,7 @@ export default function App() {
     // If coming from a cup, re-open the cup lobby instead of the main menu
     const returnToFriendsCup = !!friendsCupCtx?.roomId
     const returnToWeeklyCup  = !!weeklyCupCtx?.weekKey
+    const returnToLiveCup    = !!liveCupCtx?.roomId
 
     setMode(null); setPhase('menu')
     setTeam([]); setDraftedIds(new Set())
@@ -446,9 +460,13 @@ export default function App() {
     } else if (returnToWeeklyCup) {
       setWeeklyCupCtx(null)
       setShowWeeklyCup(true)
+    } else if (returnToLiveCup) {
+      setLiveCupCtx(null)
+      setShowLiveCup(true)
     } else {
       setFriendsCupCtx(null)
       setWeeklyCupCtx(null)
+      setLiveCupCtx(null)
     }
   }
 
@@ -501,11 +519,29 @@ export default function App() {
     }
   }
 
-  // Results → retention window (next season)
+  // Results → retention window (next season) — IPL only
   function handleNextSeason() {
     setPrevBudgetLeftover(budgetLeft)   // save unused auction budget
     setRetentionTeam([...team])         // snapshot full 11-player team for retention screen
     setPhase('retention')
+  }
+
+  // Results → fresh draft (next season) — ODI/T20 WC (no retention screen)
+  function handleNextSeasonWC() {
+    setSeasonNumber(n => n + 1)
+    setTeam([])
+    setDraftedIds(new Set())
+    setManager(null)
+    setPreviewManager(null); setConfirmedManager(null)
+    setComposition(settings?.composition ?? null)
+    setRerollsLeft(settings?.rerolls ?? 3)
+    setBudgetLeft(STARTING_BUDGET)
+    setBiddingWarsUsed(0)
+    setSummary(null); setMatchResults([])
+    setNewAwards([])
+    setReleasedPlayerNames(new Set())
+    setImpactSubOutName(null)
+    setPhase('draft')
   }
 
   // Retention confirmed → straight to draft (keep Season 1 composition, pre-fill retained players)
@@ -593,19 +629,34 @@ export default function App() {
           setShowLiveCup(false)
           setLiveCupCtx(null)
         }}
-        onStartDraft={(cupMode, onDraftDone) => {
+        onStartDraft={(cupMode, cupSettings = {}, onDraftDone) => {
           // Kick off a normal draft in the chosen mode, but in live-cup context
           liveCupDraftDoneRef.current = onDraftDone
           setMode(cupMode || 'ipl')
-          setSettings({ ratingType: 'overall', difficulty: 'normal', rerolls: 3, freePositions: false })
+          // Compute filteredEntries + composition from stored settings
+          const allTeams = cupSettings.allTeams ?? false
+          const filteredEntries = allTeams
+            ? [...MODE_CONFIG['ipl'].entries, ...MODE_CONFIG['odi-wc'].entries, ...MODE_CONFIG['t20-wc'].entries]
+            : (MODE_CONFIG[cupMode || 'ipl']?.entries ?? [])
+          const comp = (cupSettings.freePositions ?? false) ? null : { ...DEFAULT_COMP }
+          setSettings({
+            ...cupSettings,
+            filteredEntries,
+            composition: comp,
+            hardMode: cupSettings.hiddenRatings ?? false,
+            enableQTEs: cupSettings.enableQTEs ?? true,
+            rerolls: cupSettings.rerolls ?? 3,
+            inCupDraft: true,
+          })
+          setComposition(comp)
+          setRerollsLeft(cupSettings.rerolls ?? 3)
           setTeam([]); setDraftedIds(new Set())
           setManager(null); setPreviewManager(null); setConfirmedManager(null)
-          setBudgetLeft(STARTING_BUDGET); setBiddingWarsUsed(0)
-          setComposition(null)
+          setBudgetLeft(cupSettings.budget ?? STARTING_BUDGET); setBiddingWarsUsed(0)
           // Signal that draft completion should save to cup, not start season
           setLiveCupCtx({ draftMode: true })
           setShowLiveCup(false)
-          setPhase('settings')
+          setPhase('draft')
         }}
         onStartSeason={(ctx, draftedTeam, draftedManager, ratingType) => {
           // Host clicked Start — begin the actual season with pre-calculated fixtures
@@ -626,17 +677,33 @@ export default function App() {
     return (
       <FriendsCup
         user={user}
-        onHome={() => { setShowFriendsCup(false); setFriendsCupCtx(null) }}
-        onStartSeason={(ctx, cupMode) => {
+        joinCode={fcupJoinCode}
+        onHome={() => { setShowFriendsCup(false); setFriendsCupCtx(null); setFcupJoinCode(null) }}
+        onStartSeason={(ctx, cupMode, roomSettings = {}) => {
           setFriendsCupCtx(ctx)
           setMode(cupMode || 'ipl')
-          setSettings({ ratingType: 'overall', difficulty: 'normal', rerolls: 3, freePositions: false, enableQTEs: true })
+          // Compute filteredEntries + composition from stored settings
+          const allTeams = roomSettings.allTeams ?? false
+          const filteredEntries = allTeams
+            ? [...MODE_CONFIG['ipl'].entries, ...MODE_CONFIG['odi-wc'].entries, ...MODE_CONFIG['t20-wc'].entries]
+            : (MODE_CONFIG[cupMode || 'ipl']?.entries ?? [])
+          const comp = (roomSettings.freePositions ?? false) ? null : { ...DEFAULT_COMP }
+          setSettings({
+            ...roomSettings,
+            filteredEntries,
+            composition: comp,
+            hardMode: roomSettings.hiddenRatings ?? false,
+            enableQTEs: roomSettings.enableQTEs ?? true,
+            rerolls: roomSettings.rerolls ?? 3,
+            inCupDraft: true,
+          })
+          setComposition(comp)
+          setRerollsLeft(roomSettings.rerolls ?? 3)
           setTeam([]); setDraftedIds(new Set())
           setManager(null); setPreviewManager(null); setConfirmedManager(null)
-          setBudgetLeft(STARTING_BUDGET); setBiddingWarsUsed(0)
-          setComposition(null)
+          setBudgetLeft(roomSettings.budget ?? STARTING_BUDGET); setBiddingWarsUsed(0)
           setShowFriendsCup(false)
-          setPhase('settings')
+          setPhase('draft')
         }}
       />
     )
@@ -651,7 +718,7 @@ export default function App() {
         onStartSeason={(ctx, cupMode) => {
           setWeeklyCupCtx(ctx)
           setMode(cupMode || 'ipl')
-          setSettings({ ratingType: 'overall', difficulty: 'normal', rerolls: 3, freePositions: false, enableQTEs: true })
+          setSettings({ ratingType: 'overall', difficulty: 'normal', rerolls: 3, freePositions: false, enableQTEs: true, inCupDraft: true })
           setTeam([]); setDraftedIds(new Set())
           setManager(null); setPreviewManager(null); setConfirmedManager(null)
           setBudgetLeft(STARTING_BUDGET); setBiddingWarsUsed(0)
@@ -871,7 +938,12 @@ export default function App() {
   if (phase === 'settings') return (
     <div style={{ paddingTop: activeChallenge ? BANNER_H : 0, minHeight: '100vh', position: 'relative' }}>
       <div className="page-overlay" />
-      <DraftSettings mode={mode} onStart={handleSettingsStart} onBack={() => setPhase('menu')} />
+      <DraftSettings
+        mode={mode}
+        onStart={handleSettingsStart}
+        onBack={() => setPhase('menu')}
+        defaultFreePositions={!!(friendsCupCtx || weeklyCupCtx || liveCupCtx?.draftMode)}
+      />
       {profileBtn}
       {globalOverlays}
     </div>
@@ -900,6 +972,16 @@ export default function App() {
     const totalSlots  = POSITIONS.length
     const isDone      = slotsFilled === totalSlots
     const cfg         = MODE_CONFIG[mode]
+
+    // Cup minimum validation: ≥1 WK, ≥1 opener, ≥1 bowler (any type)
+    const inCupDraft  = !!(friendsCupCtx || weeklyCupCtx || liveCupCtx?.draftMode)
+    const hasWK       = team.some(p => p.role === 'wicket-keeper')
+    const hasOpener   = team.some(p => p.role === 'opener')
+    const hasBowler   = team.some(p => p.role === 'pace-bowler' || p.role === 'spin-bowler')
+    const cupMinsMet  = !inCupDraft || (hasWK && hasOpener && hasBowler)
+    const missingRoles = inCupDraft && isDone && !cupMinsMet
+      ? [!hasOpener && 'opener', !hasWK && 'wicket-keeper', !hasBowler && 'bowler'].filter(Boolean)
+      : []
 
     return (
       <div style={{ minHeight: '100vh', paddingTop: activeChallenge ? 36 : 0, position: 'relative' }}>
@@ -950,13 +1032,13 @@ export default function App() {
                   rerollsLeft={rerollsLeft}
                   onReroll={handleReroll}
                   onResult={handlePlayerPicked}
-                  budget={budgetLeft}
+                  budget={mode === 'ipl' ? budgetLeft : null}
                   onSpend={amt => setBudgetLeft(b => Math.max(0, b - amt))}
                   onRetryFromBeginning={handleBackToSettings}
                   onRetryBidding={handleRetryBidding}
                   biddingWarsUsed={biddingWarsUsed}
                   onBiddingWar={() => setBiddingWarsUsed(n => n + 1)}
-                  biddingWarsEnabled={settings?.biddingWars ?? true}
+                  biddingWarsEnabled={mode === 'ipl' && (settings?.biddingWars ?? true)}
                 />
               ) : (
                 <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center', animation: 'fade-in-up 0.4s ease both' }}>
@@ -986,8 +1068,15 @@ export default function App() {
               />
             )}
 
+            {/* Cup minimum warning */}
+            {isDone && missingRoles.length > 0 && (
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '0.625rem', fontSize: '0.8rem', color: '#ef4444', fontWeight: 700 }}>
+                ⚠️ Cup requires at least 1 {missingRoles.join(', 1 ')}. Use a reroll to swap a player.
+              </div>
+            )}
+
             {/* Desktop only: ManagerSelect + Start Season button in left column */}
-            {!isMobile && isDone && (
+            {!isMobile && isDone && cupMinsMet && (
               <>
                 <ManagerSelect
                   inline
@@ -1034,7 +1123,7 @@ export default function App() {
             </div>
 
             {/* Mobile only: ManagerSelect pinned below XI */}
-            {isMobile && isDone && (
+            {isMobile && isDone && cupMinsMet && (
               <div style={{ flexShrink: 0 }}>
                 <ManagerSelect
                   inline
@@ -1087,7 +1176,7 @@ export default function App() {
         onDone={(sum, results) => {
           if (h2hSimContext) setH2hResultCtx(h2hSimContext)
           setH2hSimContext(null)
-          setLiveCupCtx(null)
+          // Keep liveCupCtx alive so handlePlayAgain can detect and return to LiveCup
           handleSimDone(sum, results)
           // After sim, if returning from a cup we go back to results
           // (handleSimDone already sets phase to 'results')
@@ -1114,7 +1203,7 @@ export default function App() {
       }}>
         <button
           onClick={handlePlayAgain}
-          style={{ background: 'none', color: 'var(--text-muted)', border: 'none', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+          style={{ background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E', borderRadius: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700, padding: '0.3rem 0.65rem', letterSpacing: '0.02em' }}
         >
           🏠 Home
         </button>
@@ -1140,7 +1229,7 @@ export default function App() {
         team={team} mode={mode} manager={manager}
         summary={summary} matchResults={matchResults}
         onPlayAgain={handlePlayAgain}
-        onNextSeason={handleNextSeason}
+        onNextSeason={mode === 'ipl' ? handleNextSeason : handleNextSeasonWC}
         seasonNumber={seasonNumber}
         newAwards={newAwards}
         prevSeasons={prevSeasons}
@@ -1150,6 +1239,11 @@ export default function App() {
         onGoogleSignIn={signInWithGoogle}
         onShowAuth={() => setShowAuth(true)}
         restoredAfterAuth={restoredAfterAuth}
+        cupCtx={
+          friendsCupCtx?.roomId ? { type: 'friends', roomId: friendsCupCtx.roomId, playerId: friendsCupCtx.playerId }
+          : liveCupCtx?.roomId  ? { type: 'live',    roomId: liveCupCtx.roomId,    playerId: liveCupCtx.playerId }
+          : null
+        }
       />
       {profileBtn}
       {globalOverlays}

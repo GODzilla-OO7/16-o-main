@@ -428,7 +428,7 @@ function FormationPreview({ comp, circleSize = 36 }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function DraftSettings({ mode, onStart, onBack }) {
+export default function DraftSettings({ mode, onStart, onBack, defaultFreePositions = false }) {
   const cfg        = MODE_CONFIG[mode]
   const allEntries = cfg.entries
   const allYears   = [...new Set(allEntries.map(getYear))].sort()
@@ -450,7 +450,7 @@ export default function DraftSettings({ mode, onStart, onBack }) {
   const [enableQTEs,    setEnableQTEs]    = useState(true)
   const [biddingWars,   setBiddingWars]   = useState(true)
   const [overseasLimit, setOverseasLimit] = useState(true)
-  const [freePositions, setFreePositions] = useState(false)
+  const [freePositions, setFreePositions] = useState(defaultFreePositions)
   const [hiddenRatings, setHiddenRatings] = useState(false)
 
   // ── Composition state ───────────────────────────────────────────────────────
@@ -511,7 +511,7 @@ export default function DraftSettings({ mode, onStart, onBack }) {
       ratingType,
       rerolls,
       freePositions,
-      overseasLimit,
+      overseasLimit: mode === 'ipl' ? overseasLimit : false,
       biddingWars,
       enableQTEs,
       budget:      draftBudget,
@@ -658,22 +658,24 @@ export default function DraftSettings({ mode, onStart, onBack }) {
           )}
         </div>
 
-        {/* Draft Budget */}
-        <div style={{ ...S.section, borderBottom: 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <div style={S.label}>Draft Budget</div>
-            <div style={{ fontSize: '1rem', fontWeight: 900, color: '#C8102E' }}>₹{draftBudget}cr</div>
+        {/* Draft Budget — IPL only (WC modes have no auction) */}
+        {mode === 'ipl' && (
+          <div style={{ ...S.section, borderBottom: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <div style={S.label}>Draft Budget</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#C8102E' }}>₹{draftBudget}cr</div>
+            </div>
+            <SingleSlider
+              min={60} max={125} step={5}
+              value={draftBudget}
+              onChange={setDraftBudget}
+              formatLabel={v => `₹${v}cr`}
+            />
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
+              Starting auction purse · default ₹110cr
+            </div>
           </div>
-          <SingleSlider
-            min={60} max={125} step={5}
-            value={draftBudget}
-            onChange={setDraftBudget}
-            formatLabel={v => `₹${v}cr`}
-          />
-          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
-            Starting auction purse · default ₹110cr
-          </div>
-        </div>
+        )}
 
         <div style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center', padding: '0.625rem 1.75rem', borderTop: '1px solid var(--border)' }}>
           {filteredCount} team{filteredCount !== 1 ? 's' : ''} on the wheel
@@ -782,18 +784,22 @@ export default function DraftSettings({ mode, onStart, onBack }) {
           value={enableQTEs}
           onChange={setEnableQTEs}
         />
-        <ToggleRow
-          icon="⚡" label="Bidding Wars"
-          desc="Marquee players may trigger a bidding war — pay more or lose them to a rival."
-          value={biddingWars}
-          onChange={setBiddingWars}
-        />
-        <ToggleRow
-          icon="✈️" label="Overseas Limit"
-          desc="IPL rule: max 4 overseas players per XI. Turn off to draft freely across nationalities."
-          value={overseasLimit}
-          onChange={setOverseasLimit}
-        />
+        {mode === 'ipl' && (
+          <ToggleRow
+            icon="⚡" label="Bidding Wars"
+            desc="Marquee players may trigger a bidding war — pay more or lose them to a rival."
+            value={biddingWars}
+            onChange={setBiddingWars}
+          />
+        )}
+        {mode === 'ipl' && (
+          <ToggleRow
+            icon="✈️" label="Overseas Limit"
+            desc="IPL rule: max 4 overseas players per XI. Turn off to draft freely across nationalities."
+            value={overseasLimit}
+            onChange={setOverseasLimit}
+          />
+        )}
         <ToggleRow
           icon="🕶️" label="Hidden Ratings"
           desc="Player ratings are hidden during the draft. Build on instinct alone."

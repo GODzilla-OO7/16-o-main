@@ -118,7 +118,7 @@ export default function RetentionScreen({ team, prevBudgetLeftover, seasonNumber
           fontSize: '0.64rem', fontWeight: 700, letterSpacing: '0.1em',
           textTransform: 'uppercase', marginBottom: '0.35rem',
         }}>Season {seasonNumber} Retention Window</div>
-        <h2 style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--text)', margin: '0 0 0.2rem', letterSpacing: '-0.03em' }}>
+        <h2 style={{ fontSize: '1.7rem', fontWeight: 400, color: 'var(--text)', margin: '0 0 0.2rem', letterSpacing: '-0.03em' }}>
           Who Do You Keep?
         </h2>
         <p style={{ color: '#64748b', fontSize: '0.78rem', margin: 0 }}>

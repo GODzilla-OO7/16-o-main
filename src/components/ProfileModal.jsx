@@ -33,7 +33,7 @@ function AwardBadge({ award, earned }) {
             background: 'linear-gradient(135deg, #f59e0b, #d97706)',
             border: '2px solid var(--bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.55rem', lineHeight: 1,
+            fontSize: '0.62rem', lineHeight: 1,
           }}>
             ✓
           </div>
@@ -73,7 +73,7 @@ function StatCard({ value, label, sub, color = '#f59e0b' }) {
         {label}
       </div>
       {sub && (
-        <div style={{ fontSize: '0.58rem', color: '#64748b', marginTop: '0.15rem' }}>
+        <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.15rem' }}>
           {sub}
         </div>
       )}
@@ -134,10 +134,10 @@ export default function ProfileModal({ onClose, newlyEarned = [], user = null, o
 
         {/* Top nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={onClose} style={{ background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E', fontSize: '0.8rem', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: 700, padding: '0.3rem 0.65rem', letterSpacing: '0.02em' }}>
             ← Back
           </button>
-          <div style={{ fontSize: '0.6rem', fontWeight: 900, color: '#C8102E', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#C8102E', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
             My Account
           </div>
           <div style={{ width: 60 }} />
@@ -375,7 +375,7 @@ export default function ProfileModal({ onClose, newlyEarned = [], user = null, o
                     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
                   }}
                 />
-                <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '0.3rem' }}>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.3rem' }}>
                   Used to restore progress when hosted online. Never shared.
                 </div>
               </div>
@@ -440,7 +440,7 @@ export default function ProfileModal({ onClose, newlyEarned = [], user = null, o
                        h.iplOutcome === 'runner-up' ? '🥈 Finalist' :
                        h.stageReached ?? h.iplOutcome ?? '—'}
                     </div>
-                    <div style={{ fontSize: '0.55rem', color: '#475569' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>
                       {new Date(h.date).toLocaleDateString()}
                     </div>
                   </div>

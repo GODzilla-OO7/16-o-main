@@ -224,7 +224,7 @@ export default function TeamSheet({
                         <span style={{ fontSize: '0.62rem' }} title="Overseas">✈️</span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       {player.iplTeam
                         ? `${player.iplTeam}${player.iplYear ? ` · ${player.iplYear}` : ''}`
                         : player.nationality}

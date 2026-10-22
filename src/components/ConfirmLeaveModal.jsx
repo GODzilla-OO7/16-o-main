@@ -66,11 +66,9 @@ export default function ConfirmLeaveModal({ message, onYes, onNo, onHome }) {
             <button
               onClick={onHome}
               style={{
-                padding: '0.6rem 1.25rem',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                borderRadius: '0.5rem',
-                color: '#64748b', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer',
+                background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.35)', color: '#C8102E',
+                borderRadius: '0.4rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700,
+                padding: '0.3rem 0.65rem', letterSpacing: '0.02em',
               }}
             >
               🏠 Home
